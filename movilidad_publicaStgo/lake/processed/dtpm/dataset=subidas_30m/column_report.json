@@ -1,0 +1,108 @@
+{
+  "dataset": "subidas_30m",
+  "sampled_rows": 50000,
+  "columns": {
+    "Tipo_dia": {
+      "selected": true,
+      "null_rate": 0.0,
+      "null_pct": "0.0%",
+      "inferred_dtype": "string",
+      "unique_sample": 1,
+      "sample_values": [
+        "LABORAL",
+        "LABORAL",
+        "LABORAL",
+        "LABORAL",
+        "LABORAL",
+        "LABORAL",
+        "LABORAL",
+        "LABORAL"
+      ]
+    },
+    "Modo": {
+      "selected": true,
+      "null_rate": 0.0,
+      "null_pct": "0.0%",
+      "inferred_dtype": "string",
+      "unique_sample": 1,
+      "sample_values": [
+        "Bus",
+        "Bus",
+        "Bus",
+        "Bus",
+        "Bus",
+        "Bus",
+        "Bus",
+        "Bus"
+      ]
+    },
+    "Paradero": {
+      "selected": true,
+      "null_rate": 0.0,
+      "null_pct": "0.0%",
+      "inferred_dtype": "string",
+      "unique_sample": 1,
+      "sample_values": [
+        "E-10-71-OP-21",
+        "E-10-71-OP-21",
+        "E-10-71-OP-21",
+        "E-10-71-OP-21",
+        "E-10-71-OP-21",
+        "E-10-71-OP-21",
+        "E-10-71-OP-21",
+        "E-10-71-OP-21"
+      ]
+    },
+    "Comuna": {
+      "selected": true,
+      "null_rate": 0.0,
+      "null_pct": "0.0%",
+      "inferred_dtype": "string",
+      "unique_sample": 1,
+      "sample_values": [
+        "PUDAHUEL",
+        "PUDAHUEL",
+        "PUDAHUEL",
+        "PUDAHUEL",
+        "PUDAHUEL",
+        "PUDAHUEL",
+        "PUDAHUEL",
+        "PUDAHUEL"
+      ]
+    },
+    "Media_hora": {
+      "selected": true,
+      "null_rate": 0.0,
+      "null_pct": "0.0%",
+      "inferred_dtype": "float",
+      "unique_sample": 30,
+      "sample_values": [
+        "0.041666666666666664",
+        "0.0625",
+        "0.22916666666666666",
+        "0.25",
+        "0.2708333333333333",
+        "0.2916666666666667",
+        "0.3125",
+        "0.3333333333333333"
+      ]
+    },
+    "Subidas_Promedio": {
+      "selected": true,
+      "null_rate": 0.0,
+      "null_pct": "0.0%",
+      "inferred_dtype": "float",
+      "unique_sample": 20,
+      "sample_values": [
+        "0.0",
+        "0.0",
+        "5.0",
+        "13.0",
+        "25.0",
+        "18.0",
+        "34.0",
+        "35.0"
+      ]
+    }
+  }
+}

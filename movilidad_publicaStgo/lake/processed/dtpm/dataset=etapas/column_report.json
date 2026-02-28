@@ -1,0 +1,601 @@
+{
+  "dataset": "etapas",
+  "sampled_rows": 50000,
+  "columns": {
+    "operador": {
+      "selected": true,
+      "null_rate": 0.0,
+      "null_pct": "0.0%",
+      "inferred_dtype": "integer",
+      "unique_sample": 8,
+      "sample_values": [
+        "2",
+        "35",
+        "35",
+        "1",
+        "1",
+        "1",
+        "1",
+        "1"
+      ]
+    },
+    "id_etapa": {
+      "selected": false,
+      "null_rate": 0.0,
+      "null_pct": "0.0%",
+      "inferred_dtype": "integer",
+      "unique_sample": 12,
+      "sample_values": [
+        "66184",
+        "66184",
+        "66184",
+        "67208",
+        "70536",
+        "70536",
+        "70536",
+        "70536"
+      ]
+    },
+    "correlativo_viajes": {
+      "selected": false,
+      "null_rate": 0.0,
+      "null_pct": "0.0%",
+      "inferred_dtype": "integer",
+      "unique_sample": 7,
+      "sample_values": [
+        "1",
+        "1",
+        "2",
+        "1",
+        "1",
+        "2",
+        "3",
+        "4"
+      ]
+    },
+    "correlativo_etapas": {
+      "selected": false,
+      "null_rate": 0.0,
+      "null_pct": "0.0%",
+      "inferred_dtype": "integer",
+      "unique_sample": 2,
+      "sample_values": [
+        "1",
+        "2",
+        "1",
+        "1",
+        "1",
+        "1",
+        "1",
+        "1"
+      ]
+    },
+    "tipo_dia": {
+      "selected": true,
+      "null_rate": 0.0,
+      "null_pct": "0.0%",
+      "inferred_dtype": "string",
+      "unique_sample": 1,
+      "sample_values": [
+        "LABORAL",
+        "LABORAL",
+        "LABORAL",
+        "LABORAL",
+        "LABORAL",
+        "LABORAL",
+        "LABORAL",
+        "LABORAL"
+      ]
+    },
+    "tipo_transporte": {
+      "selected": true,
+      "null_rate": 0.0,
+      "null_pct": "0.0%",
+      "inferred_dtype": "string",
+      "unique_sample": 4,
+      "sample_values": [
+        "BUS",
+        "BUS",
+        "BUS",
+        "METRO",
+        "METRO",
+        "METRO",
+        "METRO",
+        "METRO"
+      ]
+    },
+    "fExpansionServicioPeriodoTS": {
+      "selected": true,
+      "null_rate": 0.0,
+      "null_pct": "0.0%",
+      "inferred_dtype": "float",
+      "unique_sample": 12,
+      "sample_values": [
+        "1.5031",
+        "1.8001",
+        "1.1037",
+        "1.0000",
+        "1.0000",
+        "1.0000",
+        "1.0000",
+        "1.0000"
+      ]
+    },
+    "tiene_bajada": {
+      "selected": true,
+      "null_rate": 0.0,
+      "null_pct": "0.0%",
+      "inferred_dtype": "integer",
+      "unique_sample": 2,
+      "sample_values": [
+        "1",
+        "1",
+        "1",
+        "0",
+        "1",
+        "1",
+        "1",
+        "1"
+      ]
+    },
+    "tiempo2": {
+      "selected": false,
+      "null_rate": 0.0,
+      "null_pct": "0.0%",
+      "inferred_dtype": "datetime",
+      "unique_sample": 30,
+      "sample_values": [
+        "2025-04-21 08:48:04",
+        "2025-04-21 08:51:46",
+        "2025-04-21 15:34:28",
+        "2025-04-21 17:27:55",
+        "2025-04-21 09:12:16",
+        "2025-04-21 10:49:35",
+        "2025-04-21 11:45:44",
+        "2025-04-21 13:42:08"
+      ]
+    },
+    "tiempo_subida": {
+      "selected": true,
+      "null_rate": 0.0,
+      "null_pct": "0.0%",
+      "inferred_dtype": "datetime",
+      "unique_sample": 30,
+      "sample_values": [
+        "2025-04-21 08:48:04",
+        "2025-04-21 08:51:46",
+        "2025-04-21 15:34:28",
+        "2025-04-21 17:27:55",
+        "2025-04-21 09:12:16",
+        "2025-04-21 10:49:35",
+        "2025-04-21 11:45:44",
+        "2025-04-21 13:42:08"
+      ]
+    },
+    "tiempo_bajada": {
+      "selected": false,
+      "null_rate": 0.2221,
+      "null_pct": "22.2%",
+      "inferred_dtype": "datetime",
+      "unique_sample": 30,
+      "sample_values": [
+        "2025-04-21 08:50:39",
+        "2025-04-21 08:54:58",
+        "2025-04-21 15:39:01",
+        "2025-04-21 09:38:40",
+        "2025-04-21 11:17:20",
+        "2025-04-21 12:33:36",
+        "2025-04-21 14:18:40",
+        "2025-04-21 14:54:18"
+      ]
+    },
+    "tiempo_etapa": {
+      "selected": true,
+      "null_rate": 0.2221,
+      "null_pct": "22.2%",
+      "inferred_dtype": "integer",
+      "unique_sample": 29,
+      "sample_values": [
+        "155",
+        "192",
+        "273",
+        "1584",
+        "1665",
+        "2872",
+        "2192",
+        "821"
+      ]
+    },
+    "media_hora_subida": {
+      "selected": true,
+      "null_rate": 0.0,
+      "null_pct": "0.0%",
+      "inferred_dtype": "datetime",
+      "unique_sample": 18,
+      "sample_values": [
+        "08:30:00",
+        "08:30:00",
+        "15:30:00",
+        "17:00:00",
+        "09:00:00",
+        "10:30:00",
+        "11:30:00",
+        "13:30:00"
+      ]
+    },
+    "media_hora_bajada": {
+      "selected": false,
+      "null_rate": 0.2221,
+      "null_pct": "22.2%",
+      "inferred_dtype": "datetime",
+      "unique_sample": 20,
+      "sample_values": [
+        "08:30:00",
+        "08:30:00",
+        "15:30:00",
+        "09:30:00",
+        "11:00:00",
+        "12:30:00",
+        "14:00:00",
+        "14:30:00"
+      ]
+    },
+    "x_subida": {
+      "selected": true,
+      "null_rate": 0.0003,
+      "null_pct": "0.0%",
+      "inferred_dtype": "integer",
+      "unique_sample": 29,
+      "sample_values": [
+        "347180",
+        "347200",
+        "346563",
+        "356329",
+        "343933",
+        "346372",
+        "351430",
+        "337829"
+      ]
+    },
+    "y_subida": {
+      "selected": true,
+      "null_rate": 0.0003,
+      "null_pct": "0.0%",
+      "inferred_dtype": "integer",
+      "unique_sample": 29,
+      "sample_values": [
+        "6301636",
+        "6302473",
+        "6303315",
+        "6302427",
+        "6297455",
+        "6299031",
+        "6289929",
+        "6293884"
+      ]
+    },
+    "x_bajada": {
+      "selected": true,
+      "null_rate": 0.2221,
+      "null_pct": "22.2%",
+      "inferred_dtype": "integer",
+      "unique_sample": 28,
+      "sample_values": [
+        "347201",
+        "346625",
+        "347168",
+        "346372",
+        "351430",
+        "337829",
+        "348799",
+        "351370"
+      ]
+    },
+    "y_bajada": {
+      "selected": true,
+      "null_rate": 0.2221,
+      "null_pct": "22.2%",
+      "inferred_dtype": "integer",
+      "unique_sample": 28,
+      "sample_values": [
+        "6302489",
+        "6303299",
+        "6302522",
+        "6299031",
+        "6289929",
+        "6293884",
+        "6299467",
+        "6302551"
+      ]
+    },
+    "dist_ruta_paraderos": {
+      "selected": true,
+      "null_rate": 0.2221,
+      "null_pct": "22.2%",
+      "inferred_dtype": "integer",
+      "unique_sample": 26,
+      "sample_values": [
+        "853",
+        "1090",
+        "1127",
+        "6240",
+        "11630",
+        "24970",
+        "16140",
+        "4475"
+      ]
+    },
+    "dist_eucl_paraderos": {
+      "selected": true,
+      "null_rate": 0.2221,
+      "null_pct": "22.2%",
+      "inferred_dtype": "integer",
+      "unique_sample": 26,
+      "sample_values": [
+        "825",
+        "983",
+        "959",
+        "3064",
+        "10307",
+        "14164",
+        "12308",
+        "4147"
+      ]
+    },
+    "servicio_subida": {
+      "selected": true,
+      "null_rate": 0.036,
+      "null_pct": "3.6%",
+      "inferred_dtype": "string",
+      "unique_sample": 19,
+      "sample_values": [
+        "T203 00R",
+        "T1121 00I",
+        "T1141 00R",
+        "L1",
+        "L1",
+        "L3",
+        "L5",
+        "L5"
+      ]
+    },
+    "servicio_bajada": {
+      "selected": false,
+      "null_rate": 0.2422,
+      "null_pct": "24.2%",
+      "inferred_dtype": "string",
+      "unique_sample": 19,
+      "sample_values": [
+        "T203 00R",
+        "T1121 00I",
+        "T1141 00R",
+        "L3",
+        "L5",
+        "L5",
+        "L1",
+        "T542 00I"
+      ]
+    },
+    "parada_subida": {
+      "selected": true,
+      "null_rate": 0.0003,
+      "null_pct": "0.0%",
+      "inferred_dtype": "string",
+      "unique_sample": 29,
+      "sample_values": [
+        "T-4-19-SN-40",
+        "E-4-19-SN-55",
+        "L-4-12-20-PO",
+        "LOS DOMINICOS",
+        "ESTACION CENTRAL",
+        "PLAZA DE ARMAS",
+        "BELLAVISTA DE LA FLORIDA",
+        "MONTE TABOR"
+      ]
+    },
+    "parada_bajada": {
+      "selected": true,
+      "null_rate": 0.2231,
+      "null_pct": "22.3%",
+      "inferred_dtype": "string",
+      "unique_sample": 28,
+      "sample_values": [
+        "E-4-19-SN-55",
+        "L-4-4-50-OP",
+        "E-4-295-OP-5",
+        "PLAZA DE ARMAS",
+        "BELLAVISTA DE LA FLORIDA",
+        "MONTE TABOR",
+        "SALVADOR",
+        "T-15-135-PO-5"
+      ]
+    },
+    "comuna_subida": {
+      "selected": true,
+      "null_rate": 0.0003,
+      "null_pct": "0.0%",
+      "inferred_dtype": "string",
+      "unique_sample": 15,
+      "sample_values": [
+        "RECOLETA",
+        "RECOLETA",
+        "RECOLETA",
+        "LAS CONDES",
+        "ESTACION CENTRAL",
+        "SANTIAGO",
+        "LA FLORIDA",
+        "MAIPU"
+      ]
+    },
+    "comuna_bajada": {
+      "selected": true,
+      "null_rate": 0.2231,
+      "null_pct": "22.3%",
+      "inferred_dtype": "string",
+      "unique_sample": 16,
+      "sample_values": [
+        "RECOLETA",
+        "RECOLETA",
+        "RECOLETA",
+        "SANTIAGO",
+        "LA FLORIDA",
+        "MAIPU",
+        "PROVIDENCIA",
+        "VITACURA"
+      ]
+    },
+    "zona_subida": {
+      "selected": true,
+      "null_rate": 0.0004,
+      "null_pct": "0.0%",
+      "inferred_dtype": "integer",
+      "unique_sample": 28,
+      "sample_values": [
+        "49",
+        "728",
+        "44",
+        "222",
+        "84",
+        "276",
+        "468",
+        "631"
+      ]
+    },
+    "zona_bajada": {
+      "selected": true,
+      "null_rate": 0.2231,
+      "null_pct": "22.3%",
+      "inferred_dtype": "integer",
+      "unique_sample": 24,
+      "sample_values": [
+        "728",
+        "44",
+        "728",
+        "276",
+        "468",
+        "631",
+        "178",
+        "188"
+      ]
+    },
+    "sitio_subida": {
+      "selected": false,
+      "null_rate": 0.031,
+      "null_pct": "3.1%",
+      "inferred_dtype": "string",
+      "unique_sample": 29,
+      "sample_values": [
+        "SDGY-28",
+        "SKDJ-94",
+        "SKDH-82",
+        "LOS DOMINICOS",
+        "ESTACION CENTRAL",
+        "PLAZA DE ARMAS",
+        "BELLAVISTA DE LA FLORIDA",
+        "MONTE TABOR"
+      ]
+    },
+    "fExpansionZonaPeriodoTS": {
+      "selected": false,
+      "null_rate": 0.2232,
+      "null_pct": "22.3%",
+      "inferred_dtype": "float",
+      "unique_sample": 29,
+      "sample_values": [
+        "1.4439",
+        "1.2459",
+        "1.6491",
+        "1.1474",
+        "1.2024",
+        "1.2258",
+        "1.3111",
+        "1.2495"
+      ]
+    },
+    "tEsperaMediaIntervalo": {
+      "selected": true,
+      "null_rate": 0.6703,
+      "null_pct": "67.0%",
+      "inferred_dtype": "float",
+      "unique_sample": 29,
+      "sample_values": [
+        "0.5333",
+        "7.1500",
+        "3.5333",
+        "4.2500",
+        "2.1667",
+        "1.8333",
+        "3.2000",
+        "3.4167"
+      ]
+    },
+    "periodoSubida": {
+      "selected": true,
+      "null_rate": 0.0,
+      "null_pct": "0.0%",
+      "inferred_dtype": "string",
+      "unique_sample": 8,
+      "sample_values": [
+        "05 - TRANSICION PUNTA MANANA",
+        "05 - TRANSICION PUNTA MANANA",
+        "08 - FUERA DE PUNTA TARDE",
+        "09 - PUNTA TARDE1",
+        "05 - TRANSICION PUNTA MANANA",
+        "06 - FUERA DE PUNTA MANANA",
+        "06 - FUERA DE PUNTA MANANA",
+        "07 - PUNTA MEDIODIA"
+      ]
+    },
+    "periodoBajada": {
+      "selected": false,
+      "null_rate": 0.2221,
+      "null_pct": "22.2%",
+      "inferred_dtype": "string",
+      "unique_sample": 7,
+      "sample_values": [
+        "05 - TRANSICION PUNTA MANANA",
+        "05 - TRANSICION PUNTA MANANA",
+        "08 - FUERA DE PUNTA TARDE",
+        "06 - FUERA DE PUNTA MANANA",
+        "06 - FUERA DE PUNTA MANANA",
+        "07 - PUNTA MEDIODIA",
+        "08 - FUERA DE PUNTA TARDE",
+        "08 - FUERA DE PUNTA TARDE"
+      ]
+    },
+    "tiempoIniExpedicion": {
+      "selected": false,
+      "null_rate": 0.552,
+      "null_pct": "55.2%",
+      "inferred_dtype": "datetime",
+      "unique_sample": 30,
+      "sample_values": [
+        "2025-04-21 07:14:08",
+        "2025-04-21 08:40:38",
+        "2025-04-21 14:49:00",
+        "2025-04-21 14:03:17",
+        "2025-04-21 14:11:43",
+        "2025-04-21 14:26:24",
+        "2025-04-21 15:50:41",
+        "2025-04-21 10:15:22"
+      ]
+    },
+    "contrato": {
+      "selected": true,
+      "null_rate": 0.0,
+      "null_pct": "0.0%",
+      "inferred_dtype": "integer",
+      "unique_sample": 1,
+      "sample_values": [
+        "171",
+        "171",
+        "171",
+        "171",
+        "171",
+        "171",
+        "171",
+        "171"
+      ]
+    }
+  }
+}

@@ -1,0 +1,29 @@
+{
+  "dataset": "subidas_30m",
+  "source": "DTPM - Subidas por paradero/estación en ventanas de 30 min",
+  "cut": "2025-04",
+  "year": 2025,
+  "month": 4,
+  "separator": "|",
+  "encoding": "utf-8",
+  "columns": [
+    "Tipo_dia",
+    "Modo",
+    "Paradero",
+    "Comuna",
+    "Media_hora",
+    "Subidas_Promedio"
+  ],
+  "column_count": 6,
+  "row_count": 747593,
+  "file_size_bytes": 41906191,
+  "source_file": "Subida_Paradero_Estacion_2025.04.xlsb",
+  "source_sheet": "SUBIDAS_2025_04",
+  "ficha": {
+    "Fuente": "Resultado Información procesada a partir de Transaasciones Bips! y GPS de los buses",
+    "Vigencia": "Abril 2025 (dia laboral entre el 21 y 25)",
+    "Descripción": "Este documento contiene información de subidas (bips!) donde se estima el paradero y estaciones de Metro y Tren. Se entrega el promedio de los días laborales entre el 21 y 25 abril 2025, y los resultados de los dias sabado 26 y domingo 27 de abril.",
+    "Alcances": "1. Los datos no poseen Evasión."
+  },
+  "extracted_at": "2026-02-27T14:10:50+00:00"
+}
