@@ -7,7 +7,37 @@
 ![Kimball](https://img.shields.io/badge/Modeling-Kimball_Star_Schema-0078D4?style=flat)
 ![Status](https://img.shields.io/badge/Status-En_Desarrollo-orange?style=flat)
 
-> **Implementación de un Data Lakehouse de alto rendimiento** diseñado para procesar, transformar y analizar **50.5 millones de registros** de transacciones del transporte público de Santiago. Este proyecto demuestra la transición de datos crudos hacia un **Modelo Estrella (Star Schema)** optimizado para consultas analíticas complejas, utilizando un enfoque de procesamiento eficiente y escalable.
+> **Implementación de un Data Lakehouse de alto rendimiento** diseñado para procesar, transformar y analizar **50.5 millones de registros** del transporte público de Santiago. El proyecto muestra la transición desde datos crudos hacia un **Data Warehouse dimensional (Kimball)** optimizado para analítica, usando procesamiento eficiente en local (DuckDB/Parquet) y carga a SQL Server.
+
+---
+
+## 🧭 Modelo Dimensional (vista general)
+
+> **Tip:** Si vienes directo por el DW/modelado, esta es la sección clave.
+
+![Constellation Model](models/constelar_model.png)
+
+### 🔎 Data Marts (diagramas por área temática)
+
+Separé el DW en **Data Marts** para que el diseño sea legible (evitar un diagrama gigante con líneas cruzadas) y para que cada mart tenga un objetivo claro.
+
+- **1) Trips & OD (Movilidad/Demanda de viajes)**  
+  Objetivo: OD, duración, transbordos, propósito, horas punta por viaje.  
+  👉 Ver diagrama: [`models/data_mart_trips_od.png`](models/data_mart_trips_od.png)
+
+- **2) Trip Legs (Etapas dentro del viaje)**  
+  Objetivo: transbordos, secuencias BUS→METRO, puntos de intercambio, carga por servicio por etapa.  
+  👉 Ver diagrama: [`models/data_mart_trip_legs.png`](models/data_mart_trip_legs.png)
+
+- **3) Stages & Operations (Operación por validación)**  
+  Objetivo: servicio, modo, espera, bajadas detectadas, performance por paradero/servicio.  
+  👉 Ver diagrama: [`models/data_mart_stages_operations.png`](models/data_mart_stages_operations.png)
+
+- **4) Network Demand (Demanda agregada por paradero/30m)**  
+  Objetivo: perfiles horarios de subidas promedio por paradero, modo y tipo de día.  
+  👉 Ver diagrama: [`models/data_mart_network_demand.png`](models/data_mart_network_demand.png)
+
+> Nota: Todos los marts comparten **dimensiones conformadas** (ej. `dim_date`, `dim_time_30m`, `dim_stop`), por lo que se pueden cruzar para análisis más completos.
 
 ---
 
