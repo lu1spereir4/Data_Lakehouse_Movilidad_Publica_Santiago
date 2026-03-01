@@ -1,0 +1,36 @@
+{
+  "generated_at": "2026-03-01T19:07:05.638095+00:00",
+  "duckdb_version": "1.4.4",
+  "git_hash": "1039ab1",
+  "dataset": "etapas",
+  "cut": "2025-04-21_2025-04-27",
+  "year": 2025,
+  "month": 4,
+  "meta_row_count": 28447535,
+  "read_row_count": 28447535,
+  "valid_row_count": 28340565,
+  "invalid_row_count": 106970,
+  "count_assertion": "PASS",
+  "quarantine_rate_pct": 0.376,
+  "quarantine_reason_distribution": [
+    {
+      "_reason_code": "NEG_DISTANCE",
+      "cnt": 100606
+    },
+    {
+      "_reason_code": "BAD_UTM_X",
+      "cnt": 6364
+    }
+  ],
+  "pydantic_sample_validation": {
+    "sample_size": 10000,
+    "error_count": 0,
+    "error_rate_pct": 0.0,
+    "reason_distribution": {},
+    "warn_rate_threshold_pct": 1.0,
+    "fail_rate_threshold_pct": 5.0
+  },
+  "output_files": [
+    "C:\\Users\\Luis\\Documents\\GitHub\\Data_Lakehouse_Movilidad_Pública_Santiago\\lake\\processed\\dtpm\\dataset=etapas\\year=2025\\month=04\\cut=2025-04-21_2025-04-27\\etapas_validation.parquet"
+  ]
+}

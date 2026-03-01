@@ -1,0 +1,29 @@
+{
+  "generated_at": "2026-03-01T19:07:07.390954+00:00",
+  "duckdb_version": "1.4.4",
+  "git_hash": "1039ab1",
+  "dataset": "subidas_30m",
+  "cut": "2025-04",
+  "year": 2025,
+  "month": 4,
+  "meta_row_count": 747593,
+  "read_row_count": 747593,
+  "valid_row_count": 747593,
+  "invalid_row_count": 0,
+  "count_assertion": "PASS",
+  "quarantine_rate_pct": 0.0,
+  "quarantine_reason_distribution": [],
+  "pydantic_sample_validation": {
+    "sample_size": 10000,
+    "error_count": 17,
+    "error_rate_pct": 0.17,
+    "reason_distribution": {
+      "1": 17
+    },
+    "warn_rate_threshold_pct": 1.0,
+    "fail_rate_threshold_pct": 5.0
+  },
+  "output_files": [
+    "C:\\Users\\Luis\\Documents\\GitHub\\Data_Lakehouse_Movilidad_Pública_Santiago\\lake\\processed\\dtpm\\dataset=subidas_30m\\year=2025\\month=04\\cut=2025-04\\subidas_30m.parquet"
+  ]
+}

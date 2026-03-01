@@ -1,0 +1,37 @@
+{
+  "generated_at": "2026-03-01T19:08:00.529423+00:00",
+  "duckdb_version": "1.4.4",
+  "git_hash": "1039ab1",
+  "dataset": "viajes",
+  "cut": "2025-04-21",
+  "year": 2025,
+  "month": 4,
+  "meta_row_count": 3621017,
+  "read_row_count": 3621017,
+  "valid_row_count": 3605891,
+  "invalid_row_count": 15126,
+  "count_assertion": "PASS",
+  "quarantine_rate_pct": 0.4177,
+  "quarantine_reason_distribution": [
+    {
+      "_reason_code": "NEG_DISTANCE",
+      "cnt": 14854
+    },
+    {
+      "_reason_code": "BAD_RANGE_N_ETAPAS",
+      "cnt": 272
+    }
+  ],
+  "pydantic_sample_validation": {
+    "sample_size": 10000,
+    "error_count": 0,
+    "error_rate_pct": 0.0,
+    "reason_distribution": {},
+    "warn_rate_threshold_pct": 1.0,
+    "fail_rate_threshold_pct": 5.0
+  },
+  "output_files": [
+    "processed\\dtpm\\dataset=viajes\\year=2025\\month=04\\cut=2025-04-21\\viajes_trip.parquet",
+    "processed\\dtpm\\dataset=viajes\\year=2025\\month=04\\cut=2025-04-21\\viajes_leg.parquet"
+  ]
+}

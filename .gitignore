@@ -1,1 +1,24 @@
+# ── Datos brutos y procesados (no van al repo) ─────────────
 *.csv
+*.parquet
+
+# Quarantine: datos derivados de gran tamaño
+lake/processed/_quarantine/
+
+# ── Python ──────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.pyo
+.venv/
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# ── IDEs ────────────────────────────────────────────────────
+.vscode/settings.json
+.idea/
+
+# ── OS ──────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
