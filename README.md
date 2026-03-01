@@ -13,29 +13,26 @@
 
 ## 🧭 Modelo Dimensional (vista general)
 
-> **Tip:** Si vienes directo por el DW/modelado, esta es la sección clave.
+> **Tip:** Si vienes directo por el DW/modelado, esta es la sección clave. 
+> 📄 **[Lee la documentación detallada y justificación de decisiones arquitectónicas aquí ➡️](movilidad_publicaStgo/models/README.md)**
 
-![Constellation Model](models/constelar_model.png)
+![Constellation Model](movilidad_publicaStgo/models/constelar_model.png)
 
 ### 🔎 Data Marts (diagramas por área temática)
 
 Separé el DW en **Data Marts** para que el diseño sea legible (evitar un diagrama gigante con líneas cruzadas) y para que cada mart tenga un objetivo claro.
 
-- **1) Trips & OD (Movilidad/Demanda de viajes)**  
-  Objetivo: OD, duración, transbordos, propósito, horas punta por viaje.  
-  👉 Ver diagrama: [`models/data_mart_trips_od.png`](models/data_mart_trips_od.png)
+- **1) Trips & OD (Movilidad/Demanda de viajes)** Objetivo: OD, duración, transbordos, propósito, horas punta por viaje.  
+  👉 Ver diagrama: [data_mart_trips_od.png](movilidad_publicaStgo/models/data_mart_trips_od.png)
 
-- **2) Trip Legs (Etapas dentro del viaje)**  
-  Objetivo: transbordos, secuencias BUS→METRO, puntos de intercambio, carga por servicio por etapa.  
-  👉 Ver diagrama: [`models/data_mart_trip_legs.png`](models/data_mart_trip_legs.png)
+- **2) Trip Legs (Etapas dentro del viaje)** Objetivo: transbordos, secuencias BUS→METRO, puntos de intercambio, carga por servicio por etapa.  
+  👉 Ver diagrama: [data_mart_trip_legs.png](movilidad_publicaStgo/models/data_mart_trip_legs.png)
 
-- **3) Stages & Operations (Operación por validación)**  
-  Objetivo: servicio, modo, espera, bajadas detectadas, performance por paradero/servicio.  
-  👉 Ver diagrama: [`models/data_mart_stages_operations.png`](models/data_mart_stages_operations.png)
+- **3) Stages & Operations (Operación por validación)** Objetivo: servicio, modo, espera, bajadas detectadas, performance por paradero/servicio.  
+  👉 Ver diagrama: [data_mart_stages_operations.png](movilidad_publicaStgo/models/data_mart_stages_operations.png)
 
-- **4) Network Demand (Demanda agregada por paradero/30m)**  
-  Objetivo: perfiles horarios de subidas promedio por paradero, modo y tipo de día.  
-  👉 Ver diagrama: [`models/data_mart_network_demand.png`](models/data_mart_network_demand.png)
+- **4) Network Demand (Demanda agregada por paradero/30m)** Objetivo: perfiles horarios de subidas promedio por paradero, modo y tipo de día.  
+  👉 Ver diagrama: [data_mart_network_demand.png](movilidad_publicaStgo/models/data_mart_network_demand.png)
 
 > Nota: Todos los marts comparten **dimensiones conformadas** (ej. `dim_date`, `dim_time_30m`, `dim_stop`), por lo que se pueden cruzar para análisis más completos.
 
