@@ -1,5 +1,13 @@
 """
-transform_silver.py — CLI para ejecutar la capa Silver DTPM.
+ORQUESTADOR PRINCIPAL DE LA CAPA SILVER: Entry Point CLI robust, este script nos permite
+decidir que procesa, como se reportan los errores y asegurar que el sistema sea estable.
+
+Algunas consideraciones en los comandos de los casos de uso:
+--dataset all: Permite procesar todo el Lakehouse de una vez.
+--overwrite: Activa la idempotencia. Si una partición falló ayer, hoy la borras y la haces de nuevo desde cero sin dejar basura.
+--dry-run: Es una red de seguridad. Te dice qué va a pasar sin gastar cómputo ni mover archivos.
+
+transform_silver.py — CLI para ejecutar la capa Silver DTPM. 
 
 Uso:
     # Dataset específico + cut específico
@@ -26,7 +34,7 @@ Uso:
 
 from __future__ import annotations
 
-import argparse
+import argparse # permite controlar todo desde la terminal, vital para CI/CD (GitHub Actions o AirFlow)
 import logging
 import sys
 import time
