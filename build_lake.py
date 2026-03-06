@@ -24,7 +24,6 @@ Fuentes:
   - data/Subida_Paradero_Estacion_YYYY.MM.xlsb  → convertido a CSV, cut = YYYY-MM
 """
 
-import csv
 import gzip
 import json
 import re
@@ -32,6 +31,8 @@ import shutil
 import zipfile
 from datetime import datetime, timezone
 from pathlib import Path
+
+import polars as pl
 
 # ---------------------------------------------------------------------------
 # Constantes de rutas
@@ -53,15 +54,18 @@ def now_iso() -> str:
 
 
 def count_rows(csv_path: Path) -> int:
-    """Cuenta filas de datos (sin encabezado)."""
-    with open(csv_path, encoding="utf-8") as f:
-        return sum(1 for _ in f) - 1  # -1 por el header
+    """Cuenta filas de datos (sin encabezado) usando Polars lazy (sin cargar en memoria)."""
+    return (
+        pl.scan_csv(csv_path, separator=SEPARATOR, infer_schema_length=0)
+        .select(pl.len())
+        .collect()
+        .item()
+    )
 
 
 def read_header(csv_path: Path) -> list[str]:
-    with open(csv_path, encoding="utf-8", newline="") as f:
-        reader = csv.reader(f, delimiter=SEPARATOR)
-        return next(reader)
+    """Lee solo el encabezado del CSV sin cargar el resto en memoria."""
+    return pl.read_csv(csv_path, separator=SEPARATOR, infer_schema_length=0, n_rows=0).columns
 
 
 def write_meta(meta_path: Path, meta: dict) -> None:
@@ -189,24 +193,20 @@ def build_etapas() -> None:
 
     print(f"    Concatenando {len(csv_files)} archivos → {dst_csv.relative_to(ROOT)}")
 
-    header_written = False
-    total_rows = 0
+    # Scan lazy: ningún archivo se carga entero en memoria
+    lazy_frames = []
+    for i, src in enumerate(csv_files):
+        lf = pl.scan_csv(src, separator=SEPARATOR, infer_schema_length=0)
+        row_count = lf.select(pl.len()).collect().item()
+        print(f"      [{i+1}/{len(csv_files)}] {src.name}  ({row_count} filas)")
+        lazy_frames.append(lf)
 
-    with open(dst_csv, "w", encoding="utf-8", newline="") as out_f:
-        for i, src in enumerate(csv_files):
-            with open(src, encoding="utf-8", newline="") as in_f:
-                lines = in_f.readlines()
+    combined = pl.concat(lazy_frames, rechunk=False)
 
-            if not header_written:
-                out_f.writelines(lines)
-                header_written = True
-                total_rows += len(lines) - 1
-            else:
-                out_f.writelines(lines[1:])   # omite encabezado duplicado
-                total_rows += len(lines) - 1
+    # sink_csv escribe en modo streaming: nunca materializa el DataFrame completo
+    combined.sink_csv(dst_csv, separator=SEPARATOR)
 
-            print(f"      [{i+1}/{len(csv_files)}] {src.name}  ({len(lines)-1} filas)")
-
+    total_rows = count_rows(dst_csv)
     columns = read_header(dst_csv)
 
     meta = {
@@ -263,9 +263,9 @@ def build_subidas_30m() -> None:
         dst_csv = partition / "subidas_30m.csv"
         print(f"    Convirtiendo {xlsb_path.name} → {dst_csv.relative_to(ROOT)}")
 
-        rows_written = 0
-        header = None
-        ficha = {}
+        header: list[str] | None = None
+        ficha: dict = {}
+        data_rows: list[list] = []
 
         with open_workbook(str(xlsb_path)) as wb:
             all_sheets = wb.sheets
@@ -280,7 +280,7 @@ def build_subidas_30m() -> None:
                         if len(vals) >= 2 and vals[0] is not None:
                             ficha[str(vals[0])] = vals[1]
 
-            # Seleccionar la hoja de datos (la más grande o la que no es FICHA)
+            # Seleccionar la hoja de datos (la que no es FICHA)
             data_sheet = next(
                 (s for s in all_sheets if "FICHA" not in s.upper()),
                 all_sheets[-1],
@@ -288,19 +288,24 @@ def build_subidas_30m() -> None:
             print(f"    Leyendo hoja de datos: {data_sheet}")
 
             with wb.get_sheet(data_sheet) as ws:
-                with open(dst_csv, "w", encoding="utf-8", newline="") as f:
-                    writer = csv.writer(f, delimiter=SEPARATOR)
-                    for row in ws.rows():
-                        values = [c.v for c in row]
-                        # Omitir filas completamente vacías
-                        if all(v is None for v in values):
-                            continue
-                        if header is None:
-                            header = [str(v) if v is not None else "" for v in values]
-                        writer.writerow(values)
-                        rows_written += 1
+                for row in ws.rows():
+                    values = [c.v for c in row]
+                    if all(v is None for v in values):
+                        continue
+                    if header is None:
+                        header = [str(v) if v is not None else "" for v in values]
+                        continue  # no agregar el encabezado como fila de datos
+                    data_rows.append(values)
 
-        print(f"      {rows_written - 1} filas escritas")  # -1 por header
+        # Escribir con Polars: más eficiente y consistente con el resto del pipeline
+        df = pl.DataFrame(
+            {col: [row[i] if i < len(row) else None for row in data_rows]
+             for i, col in enumerate(header or [])},
+            infer_schema_length=0,
+        )
+        df.write_csv(dst_csv, separator=SEPARATOR)
+        rows_written = len(df) + 1  # +1 para compatibilidad con conteo anterior (header incluido)
+        print(f"      {len(df)} filas escritas")
 
         meta = {
             "dataset"        : "subidas_30m",
