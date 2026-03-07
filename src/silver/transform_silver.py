@@ -35,38 +35,32 @@ Uso:
 from __future__ import annotations
 
 import argparse # permite controlar todo desde la terminal, vital para CI/CD (GitHub Actions o AirFlow)
-import logging
 import sys
 import time
-from datetime import datetime, timezone
 from typing import Optional
+
+from loguru import logger
 
 from src.silver.catalog import Catalog, PartitionInfo
 from src.silver.contracts import PYDANTIC_FAIL_RATE, PYDANTIC_WARN_RATE
 from src.silver.transforms import TRANSFORM_REGISTRY
 
 # ─────────────────────────────────────────────────────────────
-# Logging estructurado
+# Logging estructurado (Loguru)
 # ─────────────────────────────────────────────────────────────
 
-class _StructuredFormatter(logging.Formatter):
-    """Formatter JSON-like para logs estructurados."""
-
-    def format(self, record: logging.LogRecord) -> str:
-        ts = datetime.fromtimestamp(record.created, tz=timezone.utc).isoformat()
-        level = record.levelname
-        msg = super().format(record)
-        return f"[{ts}] [{level:<8}] {msg}"
-
-
 def _setup_logging(level: str = "INFO") -> None:
-    numeric = getattr(logging, level.upper(), logging.INFO)
-    handler = logging.StreamHandler(sys.stdout)
-    handler.setFormatter(_StructuredFormatter())
-    logging.basicConfig(level=numeric, handlers=[handler], force=True)
+    """Configura loguru: elimina el handler por defecto y añade uno con formato propio."""
+    logger.remove()
+    logger.add(
+        sys.stdout,
+        level=level.upper(),
+        format="[<green>{time:YYYY-MM-DDTHH:mm:ss}Z</green>] [<level>{level:<8}</level>] {message}",
+        colorize=True,
+    )
 
 
-log = logging.getLogger(__name__)
+log = logger
 
 # ─────────────────────────────────────────────────────────────
 # Core logic
@@ -91,9 +85,7 @@ def _resolve_partitions(
         partitions = catalog.get_partitions(dataset=dataset, cut=cut)
 
     if not partitions:
-        log.warning(
-            "No partitions found for dataset=%s cut=%s", dataset, cut
-        )
+        log.warning(f"No partitions found for dataset={dataset} cut={cut}")
     return partitions
 
 
@@ -102,7 +94,7 @@ def _check_csv_exists(partition: PartitionInfo) -> bool:
         _ = partition.csv_file
         return True
     except FileNotFoundError as exc:
-        log.error("CSV not found for partition %s/%s: %s", partition.dataset, partition.cut, exc)
+        log.error(f"CSV not found for partition {partition.dataset}/{partition.cut}: {exc}")
         return False
 
 
@@ -127,69 +119,43 @@ def run(
         log.warning("Nothing to process.")
         return 0
 
-    log.info(
-        "Partitions to process: %d | dry_run=%s | overwrite=%s",
-        len(partitions),
-        dry_run,
-        overwrite,
-    )
+    log.info(f"Partitions to process: {len(partitions)} | dry_run={dry_run} | overwrite={overwrite}")
 
     failed = 0
     for i, part in enumerate(partitions, 1):
-        log.info(
-            "[%d/%d] dataset=%s  cut=%s  rows=%s",
-            i,
-            len(partitions),
-            part.dataset,
-            part.cut,
-            f"{part.row_count:,}",
-        )
+        log.info(f"[{i}/{len(partitions)}] dataset={part.dataset}  cut={part.cut}  rows={part.row_count:,}")
         if dry_run:
-            log.info("  [DRY-RUN] csv=%s", part.abs_partition_dir)
-            log.info("  [DRY-RUN] out=%s", part.silver_output_dir())
+            log.info(f"  [DRY-RUN] csv={part.abs_partition_dir}")
+            log.info(f"  [DRY-RUN] out={part.silver_output_dir()}")
             continue
 
         if not _check_csv_exists(part):
-            log.error("Skipping partition %s/%s — CSV not found.", part.dataset, part.cut)
+            log.error(f"Skipping partition {part.dataset}/{part.cut} — CSV not found.")
             failed += 1
             continue
 
         transform_fn = TRANSFORM_REGISTRY.get(part.dataset)
         if transform_fn is None:
-            log.warning("No transform registered for dataset '%s'. Skipping.", part.dataset)
+            log.warning(f"No transform registered for dataset '{part.dataset}'. Skipping.")
             continue
 
         t0 = time.monotonic()
         try:
             transform_fn(part, overwrite=overwrite)
             elapsed = time.monotonic() - t0
-            log.info(
-                "✔ DONE  dataset=%s  cut=%s  elapsed=%.1fs",
-                part.dataset,
-                part.cut,
-                elapsed,
-            )
+            log.info(f"✔ DONE  dataset={part.dataset}  cut={part.cut}  elapsed={elapsed:.1f}s")
         except AssertionError as exc:
             elapsed = time.monotonic() - t0
-            log.error(
-                "✘ COUNT ASSERTION FAILED  dataset=%s  cut=%s  elapsed=%.1fs — %s",
-                part.dataset, part.cut, elapsed, exc,
-            )
+            log.error(f"✘ COUNT ASSERTION FAILED  dataset={part.dataset}  cut={part.cut}  elapsed={elapsed:.1f}s — {exc}")
             failed += 1
         except RuntimeError as exc:
             # Raised by _validate_sample when error_rate > fail_rate
             elapsed = time.monotonic() - t0
-            log.error(
-                "✘ PYDANTIC FAIL RATE EXCEEDED  dataset=%s  cut=%s elapsed=%.1fs — %s",
-                part.dataset, part.cut, elapsed, exc,
-            )
+            log.error(f"✘ PYDANTIC FAIL RATE EXCEEDED  dataset={part.dataset}  cut={part.cut}  elapsed={elapsed:.1f}s — {exc}")
             failed += 1
         except Exception:  # noqa: BLE001
             elapsed = time.monotonic() - t0
-            log.exception(
-                "✘ FAILED  dataset=%s  cut=%s  elapsed=%.1fs",
-                part.dataset, part.cut, elapsed,
-            )
+            log.exception(f"✘ FAILED  dataset={part.dataset}  cut={part.cut}  elapsed={elapsed:.1f}s")
             failed += 1
 
     return failed
@@ -276,14 +242,9 @@ def main() -> None:
     _setup_logging(args.log_level)
 
     log.info(
-        "Silver transform started | dataset=%s | cut=%s | dry_run=%s | "
-        "overwrite=%s | warn_rate=%.1f%% | fail_rate=%.1f%%",
-        args.dataset,
-        args.cut,
-        args.dry_run,
-        args.overwrite,
-        args.pydantic_warn_rate * 100,
-        args.pydantic_fail_rate * 100,
+        f"Silver transform started | dataset={args.dataset} | cut={args.cut} | "
+        f"dry_run={args.dry_run} | overwrite={args.overwrite} | "
+        f"warn_rate={args.pydantic_warn_rate * 100:.1f}% | fail_rate={args.pydantic_fail_rate * 100:.1f}%"
     )
     global_t0 = time.monotonic()
 
@@ -304,7 +265,7 @@ def main() -> None:
         sys.exit(1)
 
     elapsed = time.monotonic() - global_t0
-    log.info("Silver transform finished | total_elapsed=%.1fs | failed=%d", elapsed, failed)
+    log.info(f"Silver transform finished | total_elapsed={elapsed:.1f}s | failed={failed}")
 
     if failed:
         sys.exit(1)
