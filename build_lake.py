@@ -44,6 +44,14 @@ LAKE_RAW      = ROOT / "lake" / "raw" / "dtpm"
 
 SEPARATOR = "|"  # separador de los CSV de DTPM
 
+# ---------------------------------------------------------------------------
+# Constantes de seguridad para extracción
+# ---------------------------------------------------------------------------
+MAX_ZIP_UNCOMPRESSED_BYTES = 10 * 1024 ** 3   # 10 GB — aborta si el ZIP supera esto al descomprimir
+MAX_GZ_UNCOMPRESSED_BYTES  = 10 * 1024 ** 3   # ídem para .gz individuales
+MAX_ZIP_ENTRIES            = 10_000           # límite de entradas por ZIP
+ALLOWED_ZIP_EXTENSIONS     = {".csv", ".gz"}  # únicas extensiones permitidas dentro del ZIP
+
 
 # ---------------------------------------------------------------------------
 # Utilitarios
@@ -79,6 +87,99 @@ def copy_csv(src: Path, dst: Path) -> None:
 
 
 # ---------------------------------------------------------------------------
+# Extracción segura desde ZIP y GZ
+# ---------------------------------------------------------------------------
+
+def _safe_extract_zip(zf: zipfile.ZipFile, target_dir: Path) -> None:
+    """
+    Extrae un ZipFile de forma segura:
+      - Verifica tamaño total descomprimido antes de tocar el disco (zip bomb).
+      - Detecta y rechaza path traversal / zip slip.
+      - Omite symlinks.
+      - Filtra únicamente extensiones permitidas.
+      - Limita el número de entradas.
+    """
+    members = zf.infolist()
+
+    # 1. Límite de entradas
+    if len(members) > MAX_ZIP_ENTRIES:
+        raise ValueError(
+            f"ZIP contiene {len(members):,} entradas, supera el límite de {MAX_ZIP_ENTRIES:,}."
+        )
+
+    # 2. Zip bomb: verificar tamaño total ANTES de extraer
+    total_uncompressed = sum(m.file_size for m in members)
+    if total_uncompressed > MAX_ZIP_UNCOMPRESSED_BYTES:
+        raise ValueError(
+            f"Tamaño descomprimido total ({total_uncompressed / 1024**3:.2f} GB) "
+            f"supera el límite de {MAX_ZIP_UNCOMPRESSED_BYTES / 1024**3:.0f} GB."
+        )
+
+    target_resolved = target_dir.resolve()
+    extracted = 0
+
+    for member in members:
+        # 3. Omitir directorios
+        if member.is_dir():
+            continue
+
+        # 4. Detectar symlinks por el atributo Unix (modo 0xA = link)
+        unix_mode = (member.external_attr >> 16) & 0xFFFF
+        if unix_mode != 0 and (unix_mode & 0xF000) == 0xA000:
+            print(f"    ⚠ Omitiendo symlink en ZIP: {member.filename}")
+            continue
+
+        # 5. Filtrar extensiones
+        if Path(member.filename).suffix.lower() not in ALLOWED_ZIP_EXTENSIONS:
+            print(f"    ⚠ Extensión no permitida, omitiendo: {member.filename}")
+            continue
+
+        # 6. Path traversal: la ruta resuelta debe estar dentro de target_dir
+        dest = (target_dir / member.filename).resolve()
+        try:
+            dest.relative_to(target_resolved)
+        except ValueError:
+            raise ValueError(
+                f"Path traversal detectado en ZIP: '{member.filename}' → '{dest}'"
+            )
+
+        zf.extract(member, target_dir)
+        extracted += 1
+
+    print(
+        f"      {extracted} archivos extraídos | "
+        f"{total_uncompressed / 1024**2:.1f} MB descomprimido"
+    )
+
+
+def _safe_decompress_gz(
+    gz_path: Path,
+    out_path: Path,
+    max_bytes: int = MAX_GZ_UNCOMPRESSED_BYTES,
+) -> None:
+    """Descomprime un .gz en chunks, abortando si supera max_bytes (gz bomb)."""
+    written = 0
+    chunk_size = 1024 * 1024  # 1 MB por chunk
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    try:
+        with gzip.open(gz_path, "rb") as fi, open(out_path, "wb") as fo:
+            while True:
+                data = fi.read(chunk_size)
+                if not data:
+                    break
+                written += len(data)
+                if written > max_bytes:
+                    raise ValueError(
+                        f"GZ bomb detectado: '{gz_path.name}' supera "
+                        f"{max_bytes / 1024**3:.0f} GB al descomprimir."
+                    )
+                fo.write(data)
+    except ValueError:
+        out_path.unlink(missing_ok=True)
+        raise
+
+
+# ---------------------------------------------------------------------------
 # Extracción desde zip si no existe la carpeta extracted
 # ---------------------------------------------------------------------------
 
@@ -91,14 +192,26 @@ def ensure_extracted() -> None:
     EXTRACTED_DIR.mkdir(parents=True, exist_ok=True)
 
     for top_zip in DATA_DIR.glob("*.zip"):
-        top_out = EXTRACTED_DIR / top_zip.stem
+        # Sanitizar el stem: solo caracteres alfanuméricos, guiones y puntos
+        safe_stem = re.sub(r"[^\w\-\.]", "_", top_zip.stem)
+        top_out = (EXTRACTED_DIR / safe_stem).resolve()
+        # Garantizar que la salida esté dentro de EXTRACTED_DIR
+        try:
+            top_out.relative_to(EXTRACTED_DIR.resolve())
+        except ValueError:
+            raise ValueError(
+                f"Nombre de ZIP peligroso detectado: '{top_zip.name}' → '{top_out}'"
+            )
         top_out.mkdir(parents=True, exist_ok=True)
+
+        print(f"    Extrayendo {top_zip.name}...")
         with zipfile.ZipFile(top_zip) as zf:
-            zf.extractall(top_out)
+            _safe_extract_zip(zf, top_out)
+
         for gz in top_out.rglob("*.gz"):
             out = gz.with_suffix("")
-            with gzip.open(gz, "rb") as fi, open(out, "wb") as fo:
-                shutil.copyfileobj(fi, fo)
+            print(f"      Descomprimiendo {gz.name}...")
+            _safe_decompress_gz(gz, out)
             gz.unlink()
 
     print("    Extracción completada.\n")
@@ -111,12 +224,14 @@ def ensure_extracted() -> None:
 def build_viajes() -> None:
     print("\n[1] Procesando dataset=viajes (un cut por día)...")
 
-    source_dirs = list(EXTRACTED_DIR.glob("Tabla-de-viajes-*"))
+    source_dirs = sorted(EXTRACTED_DIR.glob("Tabla-de-viajes-*"))
     if not source_dirs:
         print("    ⚠ No se encontró carpeta de viajes en extracted/")
         return
+    if len(source_dirs) > 1:
+        print(f"    ⚠ Se encontraron {len(source_dirs)} carpetas de viajes; usando la más reciente: {source_dirs[-1].name}")
 
-    csv_files = sorted(source_dirs[0].rglob("*.csv"))
+    csv_files = sorted(source_dirs[-1].rglob("*.csv"))
     if not csv_files:
         print("    ⚠ No hay CSV de viajes.")
         return
@@ -165,12 +280,14 @@ def build_viajes() -> None:
 def build_etapas() -> None:
     print("\n[2] Procesando dataset=etapas (cut de rango, todos los días concatenados)...")
 
-    source_dirs = list(EXTRACTED_DIR.glob("Tabla-de-etapas-*"))
+    source_dirs = sorted(EXTRACTED_DIR.glob("Tabla-de-etapas-*"))
     if not source_dirs:
         print("    ⚠ No se encontró carpeta de etapas en extracted/")
         return
+    if len(source_dirs) > 1:
+        print(f"    ⚠ Se encontraron {len(source_dirs)} carpetas de etapas; usando la más reciente: {source_dirs[-1].name}")
 
-    csv_files = sorted(source_dirs[0].rglob("*.csv"))
+    csv_files = sorted(source_dirs[-1].rglob("*.csv"))
     if not csv_files:
         print("    ⚠ No hay CSV de etapas.")
         return
