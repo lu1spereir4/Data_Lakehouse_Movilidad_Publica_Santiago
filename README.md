@@ -73,37 +73,6 @@ Servicio, modo de transporte, tiempo de espera, bajadas detectadas, performance 
 Perfiles horarios de subidas promedio por paradero, modo y tipo de día.
 👉 [data_mart_network_demand.png](/docs/data_mart_network_demand.png)
 
-El Star Schema en detalle (versión simplificada):
-
-```
-                    ┌────────────────┐
-                    │   dim_tiempo   │
-                    │  PK: time_id   │
-                    │  fecha, hora   │
-                    │  periodo, tipo │
-                    └───────┬────────┘
-                            │
-┌──────────────┐    ┌───────▼────────┐    ┌────────────────┐
-│  dim_servicio│    │  fct_trip      │    │  dim_paradero  │
-│  PK: srv_id  ├────│  grain: viaje  ├────│  PK: par_id    │
-│  linea, modo │    │  n_etapas      │    │  codigo, nombre│
-│  operador    │    │  duracion_min  │    │  comuna, zona  │
-│  contrato    │    │  dist_ruta_m   │    │  coord UTM     │
-└──────────────┘    │  factor_exp    │    └────────────────┘
-                    │  proposito     │
-┌──────────────┐    └───────┬────────┘    ┌────────────────┐
-│  dim_comuna  │            │             │  dim_periodo   │
-│  PK: com_id  │    ┌───────▼────────┐    │  PK: per_id    │
-│  nombre      ├────│  fct_trip_leg  ├────│  nombre        │
-│  region      │    │  grain: etapa  │    │  hora_inicio   │
-└──────────────┘    │  tiempo_etapa  │    │  hora_fin      │
-                    │  espera_min    │    └────────────────┘
-                    │  tiene_bajada  │
-                    │  dist_ruta_m   │
-                    └────────────────┘
-```
-
----
 
 ## Resultados
 
@@ -123,7 +92,7 @@ El Star Schema en detalle (versión simplificada):
 
 ## Los Datos
 
-Fuente: **DTPM (Directorio de Transporte Público Metropolitano)**, publicados como datos abiertos. Combinan dos fuentes:
+Fuente: **DTPM (Directorio de Transporte Público Metropolitano)**, publicados como datos abiertos. Combinan dos fuentes: 
 
 - **GPS de la flota** — posición y timestamp de cada bus en operación
 - **Transacciones Bip!** — cada validación de tarjeta, con bajada inferida por modelo
