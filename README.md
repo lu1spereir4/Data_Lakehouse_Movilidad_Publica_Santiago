@@ -18,34 +18,10 @@ Pipeline de datos end-to-end sobre los **50.5 millones de registros** mensuales 
 </div>
 El proyecto implementa **Medallion Architecture**: tres capas con responsabilidades bien separadas. Bronze guarda los datos exactamente como llegaron. Silver los transforma, tipifica y filtra con DuckDB. Gold carga el resultado en un Star Schema Kimball en SQL Server.
 
-```
-ZIP/CSV.GZ/XLSB (DTPM)
-        │
-        ▼  extract_data.py
-┌────────────────────────────────────────────────────────────────┐
-│  BRONZE — lake/raw/                                            │
-│  Particionado Hive-style: dataset=X/year=YYYY/month=MM/cut=X  │
-│  _meta.json por partición  ·  lake_catalog.json centralizado  │
-└───────────────────────────┬────────────────────────────────────┘
-                            │  transform_silver.py
-                            ▼
-┌────────────────────────────────────────────────────────────────┐
-│  SILVER — lake/processed/                                      │
-│  DuckDB · all-VARCHAR read · TRY_CAST · Parquet ZSTD           │
-│  Contratos Pydantic v2  ·  quarantine de filas inválidas       │
-│  quality.json por partición                                    │
-└───────────────────────────┬────────────────────────────────────┘
-                            │  load_gold.py
-                            ▼
-┌────────────────────────────────────────────────────────────────┐
-│  GOLD — SQL Server (MovilidadDW)                               │
-│  Star Schema Kimball  ·  9 dims + 4 facts                      │
-│  SCD2 en dim_stop y dim_service  ·  MERGE idempotente          │
-│  Filtered unique indexes por grain                             │
-└────────────────────────────────────────────────────────────────┘
-```
-
----
+<div align="center">
+  <img src="docs/medallion-architecture.jpg" alt="Arquitectura Medallón DTPM" width="700px">
+  <p><i>Flujo de datos End-to-End: Desde la ingesta de archivos fuente hasta el modelado dimensional en Gold.</i></p>
+</div>
 
 ## Modelo Dimensional
 
