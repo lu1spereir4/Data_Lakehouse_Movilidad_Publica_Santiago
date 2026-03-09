@@ -19,7 +19,7 @@ Pipeline de datos end-to-end sobre los **50.5 millones de registros** mensuales 
 El proyecto implementa **Medallion Architecture**: tres capas con responsabilidades bien separadas. Bronze guarda los datos exactamente como llegaron. Silver los transforma, tipifica y filtra con DuckDB. Gold carga el resultado en un Star Schema Kimball en SQL Server.
 
 <div align="center">
-  <img src="docs/medallion-architecture.jpg" alt="Arquitectura Medallón DTPM" width="700px">
+  <img src="docs/medallion-architecture.png" alt="Arquitectura Medallón DTPM" width="700px">
   <p><i>Flujo de datos End-to-End: Desde la ingesta de archivos fuente hasta el modelado dimensional en Gold.</i></p>
 </div>
 
