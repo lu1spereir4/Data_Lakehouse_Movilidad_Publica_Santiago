@@ -18,34 +18,10 @@ Pipeline de datos end-to-end sobre los **50.5 millones de registros** mensuales 
 </div>
 El proyecto implementa **Medallion Architecture**: tres capas con responsabilidades bien separadas. Bronze guarda los datos exactamente como llegaron. Silver los transforma, tipifica y filtra con DuckDB. Gold carga el resultado en un Star Schema Kimball en SQL Server.
 
-```
-ZIP/CSV.GZ/XLSB (DTPM)
-        │
-        ▼  extract_data.py
-┌────────────────────────────────────────────────────────────────┐
-│  BRONZE — lake/raw/                                            │
-│  Particionado Hive-style: dataset=X/year=YYYY/month=MM/cut=X  │
-│  _meta.json por partición  ·  lake_catalog.json centralizado  │
-└───────────────────────────┬────────────────────────────────────┘
-                            │  transform_silver.py
-                            ▼
-┌────────────────────────────────────────────────────────────────┐
-│  SILVER — lake/processed/                                      │
-│  DuckDB · all-VARCHAR read · TRY_CAST · Parquet ZSTD           │
-│  Contratos Pydantic v2  ·  quarantine de filas inválidas       │
-│  quality.json por partición                                    │
-└───────────────────────────┬────────────────────────────────────┘
-                            │  load_gold.py
-                            ▼
-┌────────────────────────────────────────────────────────────────┐
-│  GOLD — SQL Server (MovilidadDW)                               │
-│  Star Schema Kimball  ·  9 dims + 4 facts                      │
-│  SCD2 en dim_stop y dim_service  ·  MERGE idempotente          │
-│  Filtered unique indexes por grain                             │
-└────────────────────────────────────────────────────────────────┘
-```
-
----
+<div align="center">
+  <img src="docs/medallion-architecture.jpg" alt="Arquitectura Medallón DTPM" width="700px">
+  <p><i>Flujo de datos End-to-End: Desde la ingesta de archivos fuente hasta el modelado dimensional en Gold.</i></p>
+</div>
 
 ## Modelo Dimensional
 
@@ -73,37 +49,6 @@ Servicio, modo de transporte, tiempo de espera, bajadas detectadas, performance 
 Perfiles horarios de subidas promedio por paradero, modo y tipo de día.
 👉 [data_mart_network_demand.png](/docs/data_mart_network_demand.png)
 
-El Star Schema en detalle (versión simplificada):
-
-```
-                    ┌────────────────┐
-                    │   dim_tiempo   │
-                    │  PK: time_id   │
-                    │  fecha, hora   │
-                    │  periodo, tipo │
-                    └───────┬────────┘
-                            │
-┌──────────────┐    ┌───────▼────────┐    ┌────────────────┐
-│  dim_servicio│    │  fct_trip      │    │  dim_paradero  │
-│  PK: srv_id  ├────│  grain: viaje  ├────│  PK: par_id    │
-│  linea, modo │    │  n_etapas      │    │  codigo, nombre│
-│  operador    │    │  duracion_min  │    │  comuna, zona  │
-│  contrato    │    │  dist_ruta_m   │    │  coord UTM     │
-└──────────────┘    │  factor_exp    │    └────────────────┘
-                    │  proposito     │
-┌──────────────┐    └───────┬────────┘    ┌────────────────┐
-│  dim_comuna  │            │             │  dim_periodo   │
-│  PK: com_id  │    ┌───────▼────────┐    │  PK: per_id    │
-│  nombre      ├────│  fct_trip_leg  ├────│  nombre        │
-│  region      │    │  grain: etapa  │    │  hora_inicio   │
-└──────────────┘    │  tiempo_etapa  │    │  hora_fin      │
-                    │  espera_min    │    └────────────────┘
-                    │  tiene_bajada  │
-                    │  dist_ruta_m   │
-                    └────────────────┘
-```
-
----
 
 ## Resultados
 
@@ -123,7 +68,7 @@ El Star Schema en detalle (versión simplificada):
 
 ## Los Datos
 
-Fuente: **DTPM (Directorio de Transporte Público Metropolitano)**, publicados como datos abiertos. Combinan dos fuentes:
+Fuente: **DTPM (Directorio de Transporte Público Metropolitano)**, publicados como datos abiertos. Combinan dos fuentes: 
 
 - **GPS de la flota** — posición y timestamp de cada bus en operación
 - **Transacciones Bip!** — cada validación de tarjeta, con bajada inferida por modelo
