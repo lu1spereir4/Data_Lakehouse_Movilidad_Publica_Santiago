@@ -1452,16 +1452,16 @@ class GoldLoader:
                 ) AS _rn
                 FROM staging.stg_subidas_30m
             ) s
-            WHERE s._rn = 1
             -- AS-OF stop: versión de dim_stop válida al primer día del mes del corte
             LEFT JOIN dw.dim_stop ds
                    ON ds.stop_code  = s.stop_code
                   AND ds.valid_from <= {event_dt}
                   AND (ds.valid_to  IS NULL OR {event_dt} <= ds.valid_to)
             LEFT JOIN dw.dim_mode dm ON dm.mode_code = s.mode_code
-            -- Excluir filas donde no se puede resolver stop_sk o mode_sk
+            -- Excluir filas de dedup y donde no se puede resolver stop_sk o mode_sk
             -- (ambos forman parte del grain y no pueden ser NULL en la fact)
-            WHERE ds.stop_sk IS NOT NULL AND dm.mode_sk IS NOT NULL
+            WHERE s._rn = 1
+              AND ds.stop_sk IS NOT NULL AND dm.mode_sk IS NOT NULL
         ) AS src
         ON  tgt.month_date_sk = src.month_date_sk
         AND tgt.time_30m_sk   = src.time_30m_sk

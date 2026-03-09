@@ -12,11 +12,10 @@ Pipeline de datos end-to-end sobre los **50.5 millones de registros** mensuales 
 
 ---
 
-## Arquitectura
-
-<!-- Reemplaza con tu imagen cuando esté lista -->
-> 📌 *Diagrama de arquitectura en construcción — se publicará aquí.*
-
+<div align="center">
+  <img src="docs/arquitectura.png" alt="Arquitectura del Pipeline DTPM" width="900px">
+  <p><i>Esquema técnico del pipeline: Desde la ingesta en Bronze hasta el modelo dimensional en Gold.</i></p>
+</div>
 El proyecto implementa **Medallion Architecture**: tres capas con responsabilidades bien separadas. Bronze guarda los datos exactamente como llegaron. Silver los transforma, tipifica y filtra con DuckDB. Gold carga el resultado en un Star Schema Kimball en SQL Server.
 
 ```
@@ -50,9 +49,9 @@ ZIP/CSV.GZ/XLSB (DTPM)
 
 ## Modelo Dimensional
 
-> 📄 **[Documentación detallada y justificación de decisiones → `/models/README.md`](/models/README.md)**
+> 📄 **[Documentación detallada y justificación de decisiones → `/docs/README.md`](/docs/README.md)**
 
-![Constellation Model](/models/constelar_model.png)
+![Constellation Model](/docs/constelar_model.png)
 
 ### Data Marts
 
@@ -60,19 +59,19 @@ El DW está dividido en cuatro Data Marts con dimensiones conformadas entre ello
 
 **1. Trips & OD — Movilidad y demanda de viajes**
 Origen-destino, duración, transbordos, propósito, períodos tarifarios.
-👉 [data_mart_trips_od.png](/models/data_mart_trips_od.png)
+👉 [data_mart_trips_od.png](/docs/data_mart_trips_od.png)
 
 **2. Trip Legs — Etapas dentro del viaje**
 Secuencias BUS→METRO, puntos de intercambio, carga por servicio por tramo.
-👉 [data_mart_trip_legs.png](/models/data_mart_trip_legs.png)
+👉 [data_mart_trip_legs.png](/docs/data_mart_trip_legs.png)
 
 **3. Stages & Operations — Operación por validación Bip!**
 Servicio, modo de transporte, tiempo de espera, bajadas detectadas, performance por paradero.
-👉 [data_mart_stages_operations.png](/models/data_mart_stages_operations.png)
+👉 [data_mart_stages_operations.png](/docs/data_mart_stages_operations.png)
 
 **4. Network Demand — Demanda agregada por paradero/30 min**
 Perfiles horarios de subidas promedio por paradero, modo y tipo de día.
-👉 [data_mart_network_demand.png](/models/data_mart_network_demand.png)
+👉 [data_mart_network_demand.png](/docs/data_mart_network_demand.png)
 
 El Star Schema en detalle (versión simplificada):
 
@@ -216,7 +215,7 @@ Data_Lakehouse_Movilidad_Pública_Santiago/
 │       ├── load_gold.py     # GoldLoader: staging → dims → facts con MERGE
 │       └── sql_helpers.py   # Conexión pyodbc, bulk_insert, DDL executor
 │
-├── models/
+├── docs/
 │   ├── gold/
 │   │   ├── ddl_gold.sql     # DDL completo: 4 staging + 9 dims + 4 facts
 │   │   └── cleanup_cut.sql  # Script para borrar un corte de Gold
@@ -320,7 +319,7 @@ SQLSERVER_DB=MovilidadDW
 - [`docs/DIA_2_SILVER_Y_CALIDAD.md`](docs/DIA_2_SILVER_Y_CALIDAD.md) — DuckDB, Pydantic v2, patrones de calidad
 - [`docs/DIA_3_GOLD_Y_KIMBALL.md`](docs/DIA_3_GOLD_Y_KIMBALL.md) — Kimball, SCD2, MERGE, grain
 - [`lake/README.md`](lake/README.md) — Catálogo técnico del lake
-- [`models/README.md`](models/README.md) — Modelo dimensional completo
+- [`docs/README.md`](docs/README.md) — Modelo dimensional completo
 
 ---
 
