@@ -489,14 +489,17 @@ BEGIN
     --     ON dw.fct_trip_leg (date_board_sk, board_stop_sk, mode_sk, tv_leg_min, tc_transfer_min);
 END;
 
--- 3.3  fct_validation  —  Mart 'Stages & Operations'  (grain: id_etapa + cut)
+-- 3.3  fct_validation  —  Mart 'Stages & Operations'  (grain: id_etapa + tiempo_boarding + cut)
+-- id_etapa NO es único: para ZP/Metro es código de estación/zona repetido por pasajero.
+-- La combinación (id_etapa, tiempo_boarding) identifica unívocamente cada validación.
 IF OBJECT_ID(N'dw.fct_validation', N'U') IS NULL
 BEGIN
     CREATE TABLE dw.fct_validation (
         validation_sk               BIGINT       NOT NULL IDENTITY(1,1),
 
-        -- ── Grain ──────────────────────────────────────────────
+        -- ── Grain ─────────────────────────────────
         id_etapa                    NVARCHAR(80) NOT NULL,
+        tiempo_boarding             DATETIME2(0) NOT NULL,   -- tiempo_subida; discrimina pasajeros con mismo id_etapa
         cut_sk                      INT          NOT NULL,
 
         -- ── Tiempo ─────────────────────────────────────────────
@@ -543,7 +546,7 @@ BEGIN
         loaded_at                   DATETIME2(0) NOT NULL DEFAULT SYSUTCDATETIME(),
 
         CONSTRAINT PK_fct_validation              PRIMARY KEY CLUSTERED (validation_sk),
-        CONSTRAINT UQ_fct_validation_grain        UNIQUE NONCLUSTERED (id_etapa, cut_sk),
+        CONSTRAINT UQ_fct_validation_grain        UNIQUE NONCLUSTERED (id_etapa, cut_sk, tiempo_boarding),
         CONSTRAINT FK_fct_val_date                FOREIGN KEY (date_board_sk)         REFERENCES dw.dim_date (date_sk),
         CONSTRAINT FK_fct_val_time                FOREIGN KEY (time_board_30m_sk)     REFERENCES dw.dim_time_30m (time_30m_sk),
         CONSTRAINT FK_fct_val_board_stop          FOREIGN KEY (board_stop_sk)         REFERENCES dw.dim_stop (stop_sk),

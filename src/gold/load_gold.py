@@ -374,12 +374,36 @@ def scd2_upsert(
                 counts["unchanged"] += 1
                 continue
 
-            if event_date <= existing_from:
+            if event_date < existing_from:
                 log.warning(
-                    "SCD2 %s: event_date=%s <= valid_from existente=%s para BK=%s — skip.",
+                    "SCD2 %s: event_date=%s < valid_from existente=%s para BK=%s — skip.",
                     dim_table, event_date, existing_from, bk_val,
                 )
                 counts["unchanged"] += 1
+                continue
+
+            if event_date == existing_from:
+                # Mismo día: enriquecimiento in-place (no crear nueva versión SCD2).
+                # Ocurre cuando una fuente posterior (ej. etapas) tiene más atributos
+                # que la primera (ej. viajes) para el mismo período.
+                update_parts = ", ".join(
+                    f"[{c}] = ?" for c in attr_cols + ["row_hash"]
+                )
+                update_sql = (
+                    f"UPDATE {dim_table} SET {update_parts} "
+                    f"WHERE [{bk_col}] = ? AND is_current = 1"
+                )
+                vals = _sanitize_row(
+                    {**row.to_dict(), "row_hash": new_hash},
+                    dim_table, attr_cols + ["row_hash"],
+                )
+                try:
+                    cur = conn.cursor()
+                    cur.execute(update_sql, vals + [bk_val])
+                    cur.close()
+                except Exception as exc:
+                    log.warning("SCD2 same-date UPDATE fallo para BK=%s: %s", bk_val, exc)
+                counts["unchanged"] += 1   # semantícamente: no nueva versión
                 continue
 
             # Changed attribute → queue EXPIRE + INSERT
@@ -429,10 +453,12 @@ class GoldLoader:
         conn: pyodbc.Connection,
         dry_run: bool = False,
         overwrite_staging: bool = True,
+        force: bool = False,
     ) -> None:
         self.conn              = conn
         self.dry_run           = dry_run
         self.overwrite_staging = overwrite_staging  # si False: no truncar staging (re-run dims/facts)
+        self.force             = force              # si True: ignora etl_run_log status=OK
         self._duckdb = duckdb.connect(":memory:")
         self._duckdb.execute(f"SET memory_limit='4GB'")
         self._duckdb.execute(f"SET threads TO {__import__('os').cpu_count() or 4}")
@@ -499,7 +525,8 @@ class GoldLoader:
     def _ensure_dim_date(self, date_sks: list[int]) -> None:
         """
         Asegura que todas las fechas necesarias existen en dim_date.
-        Genera el rango desde min→max date_sk y hace INSERT de las faltantes.
+        Genera el año completo que contiene las fechas observadas, más un año
+        de buffer anterior y posterior, para facilitar el reporting.
         """
         if not date_sks:
             return
@@ -507,8 +534,16 @@ class GoldLoader:
         if not valid_sks:
             return
 
+        # Años observados en los datos
         min_sk = int(min(valid_sks))
         max_sk = int(max(valid_sks))
+        min_year = min_sk // 10000
+        max_year = max_sk // 10000
+
+        # Expandir al rango completo: desde el 1 de enero del año mínimo
+        # hasta el 31 de diciembre del año máximo
+        min_sk = min_year * 10000 + 101   # YYYY0101
+        max_sk = max_year * 10000 + 1231  # YYYY1231
 
         def sk_to_date(sk: int) -> date:
             y, rem = divmod(sk, 10000)
@@ -636,15 +671,15 @@ class GoldLoader:
         if not pq_key:
             log.warning("No se encontró parquet de etapas en %s/%s", part.dataset, part.cut)
             return 0
-        df = self._read_parquet(part.parquet_files[pq_key[0]])
-        df = df.rename(columns={"month": "_month_raw", "year": "_year_raw"})
-        df["year"]  = part.year
-        df["month"] = part.month
-        df["cut"]   = part.cut
-        # Mapear time_board/alight a TINYINT-safe
-        for col in ["time_board_30m_sk", "time_alight_30m_sk"]:
-            if col in df.columns:
-                df[col] = pd.to_numeric(df[col], errors="coerce").astype(object).where(pd.notna(df[col]), None)
+
+        p = str(part.parquet_files[pq_key[0]]).replace("\\", "/")
+
+        # Columnas disponibles en el parquet
+        schema_df = self._duckdb.execute(f"SELECT * FROM read_parquet('{p}') LIMIT 0").df()
+        parquet_cols = set(schema_df.columns)
+
+        # Construir SELECT en DuckDB: renombra year/month para evitar colisión,
+        # inyecta year/month/cut desde la partición como literales.
         stg_cols = [
             "cut","year","month","id_etapa","operador","contrato","tipo_dia","tipo_transporte",
             "fExpansionServicioPeriodoTS","tiene_bajada","tiempo_subida","tiempo_bajada","tiempo_etapa",
@@ -655,9 +690,62 @@ class GoldLoader:
             "comuna_subida","comuna_bajada","zona_subida","zona_bajada",
             "tEsperaMediaIntervalo","periodoSubida","periodoBajada",
         ]
-        df = df[[c for c in stg_cols if c in df.columns]]
-        return bulk_insert(self.conn, "staging.stg_etapas_validation", df,
-                           truncate_first=self.overwrite_staging, chunk_size=25_000)
+        # Columnas que vienen del parquet (excluyendo year/month/cut que se inyectan)
+        injected = {"cut", "year", "month"}
+        select_parts = [
+            f"'{part.cut}' AS cut",
+            f"{part.year}  AS year",
+            f"{part.month} AS month",
+        ]
+        final_cols = ["cut", "year", "month"]
+        for col in stg_cols:
+            if col in injected:
+                continue
+            if col in parquet_cols:
+                select_parts.append(f'"{col}"')
+                final_cols.append(col)
+
+        sql = f"SELECT {', '.join(select_parts)} FROM read_parquet('{p}')"
+
+        # ── Streaming: DuckDB cursor → batches de 500K filas ──────────────
+        BATCH = 500_000
+        if self.overwrite_staging:
+            from src.gold.sql_helpers import execute_sql as _exec_sql
+            _exec_sql(self.conn, "TRUNCATE TABLE staging.stg_etapas_validation")
+            log.info("TRUNCATE TABLE staging.stg_etapas_validation")
+
+        cursor_ddb = self._duckdb.execute(sql)
+        col_names  = [desc[0] for desc in cursor_ddb.description]
+
+        total = 0
+        batch_num = 0
+        t0 = __import__("time").monotonic()
+        while True:
+            rows = cursor_ddb.fetchmany(BATCH)
+            if not rows:
+                break
+            batch_num += 1
+            df = pd.DataFrame(rows, columns=col_names)
+            df = df.astype(object).where(pd.notna(df), None)
+
+            # TINYINT-safe para time_sk (0-47)
+            for tcol in ["time_board_30m_sk", "time_alight_30m_sk"]:
+                if tcol in df.columns:
+                    df[tcol] = pd.to_numeric(df[tcol], errors="coerce").astype(object).where(pd.notna(df[tcol]), None)
+
+            n = bulk_insert(
+                self.conn, "staging.stg_etapas_validation", df,
+                truncate_first=False,   # ya truncamos arriba (o no se trunca)
+                chunk_size=50_000,
+            )
+            total += n
+            elapsed = __import__("time").monotonic() - t0
+            log.info(
+                "stg_etapas batch %d | +%s filas | acum=%s | %.1fs",
+                batch_num, f"{n:,}", f"{total:,}", elapsed,
+            )
+
+        return total
 
     def _load_stg_subidas(self, part: SilverPartition) -> int:
         if "subidas_30m" not in part.parquet_files:
@@ -697,14 +785,25 @@ class GoldLoader:
             except Exception:
                 pass
 
+        # Calcular tamaño total de los parquets y el path del archivo principal
+        total_bytes: int | None = None
+        source_file: str | None = None
+        try:
+            total_bytes = sum(p.stat().st_size for p in partition.parquet_files.values())
+            # Usar el parquet principal (el de mayor tamaño) como source_file representativo
+            main_pq = max(partition.parquet_files.values(), key=lambda p: p.stat().st_size)
+            source_file = str(main_pq.relative_to(_PROJECT_ROOT)).replace("\\", "/")
+        except Exception:
+            pass
+
         execute_sql(
             self.conn,
             """
             IF NOT EXISTS (
                 SELECT 1 FROM dw.dim_cut WHERE dataset_name = ? AND cut_id = ?
             )
-            INSERT INTO dw.dim_cut (dataset_name, cut_id, year, month, extracted_at, row_count)
-            VALUES (?, ?, ?, ?, ?, ?)
+            INSERT INTO dw.dim_cut (dataset_name, cut_id, year, month, extracted_at, row_count, file_size_bytes, source_file)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 partition.dataset, partition.cut,
@@ -712,6 +811,8 @@ class GoldLoader:
                 partition.year, partition.month,
                 extracted_at,
                 q.get("read_row_count"),
+                total_bytes,
+                source_file,
             ),
         )
         log.info("dim_cut: upsert dataset=%s cut=%s", partition.dataset, partition.cut)
@@ -1128,7 +1229,9 @@ class GoldLoader:
         sql = f"""
         -- Grain real: (cut_sk, id_tarjeta, id_viaje, leg_seq).
         -- Efectivo (id_tarjeta IS NULL) excluido — sin BK único.
-        -- Si Silver produce duplicados, conservamos el embarque más reciente.
+        -- Slots vacíos excluidos: el DTPM genera leg_seq 2/3/4 con todo NULL
+        -- para viajes con menos etapas que el máximo del schema.
+        -- Si Silver produce duplicados reales, conservamos el embarque más reciente.
         WITH src_dedup AS (
             SELECT *,
                 ROW_NUMBER() OVER (
@@ -1137,6 +1240,7 @@ class GoldLoader:
                 ) AS _rn
             FROM staging.stg_viajes_leg
             WHERE id_tarjeta IS NOT NULL         -- excluir efectivo
+              AND (ts_board IS NOT NULL OR board_stop_code IS NOT NULL OR mode_code IS NOT NULL)  -- excluir slots vacíos
         ),
         -- CTE 2: date_board_sk → event_dt DATE para as-of joins SCD2
         src_prep AS (
@@ -1255,7 +1359,9 @@ class GoldLoader:
     def merge_fct_validation(self, partition: SilverPartition) -> int:
         """
         MERGE staging.stg_etapas_validation → dw.fct_validation.
-        Grain: (id_etapa, cut_sk).
+        Grain: (id_etapa, tiempo_subida, cut_sk).
+        id_etapa NO es único: para ZP/Metro es código de estación/zona que se repite
+        para cada pasajero. La combinación (id_etapa, tiempo_subida) sí es única.
 
         As-of join:
           event_date = date_board_sk (embarque de la etapa).
@@ -1277,16 +1383,20 @@ class GoldLoader:
             return 0
 
         sql = f"""
-        -- CTE 1: dedup por grain (id_etapa) antes de cualquier join.
+        -- CTE 1: dedup por grain real (id_etapa, tiempo_subida) antes de cualquier join.
+        -- id_etapa NO es único: para transacciones ZP/Metro es un código de estación/zona
+        -- que se repite para cada pasajero. El grain correcto es (id_etapa, tiempo_subida).
+        -- Como todos los 28M rows son únicos en esa combinación, _rn=1 para todos.
         WITH src_dedup AS (
             SELECT *,
-                ROW_NUMBER() OVER (PARTITION BY id_etapa ORDER BY (SELECT NULL)) AS _rn
+                ROW_NUMBER() OVER (PARTITION BY id_etapa, tiempo_subida ORDER BY (SELECT NULL)) AS _rn
             FROM staging.stg_etapas_validation
         ),
         -- CTE 2: date_board_sk → event_dt DATE para as-of join SCD2
         src_prep AS (
             SELECT
                 s.id_etapa,
+                s.tiempo_subida,
                 s.date_board_sk,
                 s.time_board_30m_sk,
                 s.date_alight_sk,
@@ -1323,6 +1433,7 @@ class GoldLoader:
         USING (
             SELECT
                 s.id_etapa,
+                s.tiempo_subida                                AS tiempo_boarding,
                 {cut_sk}                                        AS cut_sk,
                 s.date_board_sk,
                 CAST(s.time_board_30m_sk  AS TINYINT)          AS time_board_30m_sk,
@@ -1375,9 +1486,11 @@ class GoldLoader:
             LEFT JOIN dw.dim_fare_period fp_b ON fp_b.fare_period_name = s.periodoSubida
             LEFT JOIN dw.dim_fare_period fp_a ON fp_a.fare_period_name = s.periodoBajada
         ) AS src
-        ON tgt.id_etapa = src.id_etapa AND tgt.cut_sk = src.cut_sk
+        ON  tgt.id_etapa       = src.id_etapa
+        AND tgt.cut_sk         = src.cut_sk
+        AND tgt.tiempo_boarding = src.tiempo_boarding
         WHEN NOT MATCHED THEN INSERT (
-            id_etapa, cut_sk,
+            id_etapa, tiempo_boarding, cut_sk,
             date_board_sk, time_board_30m_sk, date_alight_sk, time_alight_30m_sk,
             board_stop_sk, alight_stop_sk, mode_sk,
             service_board_sk, service_alight_sk,
@@ -1386,7 +1499,7 @@ class GoldLoader:
             t_espera_media_min, dist_ruta_m, dist_eucl_m,
             x_subida, y_subida, x_bajada, y_bajada, fexp_servicio
         ) VALUES (
-            src.id_etapa, src.cut_sk,
+            src.id_etapa, src.tiempo_boarding, src.cut_sk,
             src.date_board_sk, src.time_board_30m_sk, src.date_alight_sk, src.time_alight_30m_sk,
             src.board_stop_sk, src.alight_stop_sk, src.mode_sk,
             src.service_board_sk, src.service_alight_sk,
@@ -1452,11 +1565,13 @@ class GoldLoader:
                 ) AS _rn
                 FROM staging.stg_subidas_30m
             ) s
-            -- AS-OF stop: versión de dim_stop válida al primer día del mes del corte
+            -- Para subidas_30m (agregado mensual) usamos is_current=1.
+            -- Un join AS-OF por fecha del mes (YYYY-MM-01) fallaría porque
+            -- dim_stop se popula con valid_from del período de datos (~Apr 21),
+            -- que es posterior al primer día del mes.
             LEFT JOIN dw.dim_stop ds
                    ON ds.stop_code  = s.stop_code
-                  AND ds.valid_from <= {event_dt}
-                  AND (ds.valid_to  IS NULL OR {event_dt} <= ds.valid_to)
+                  AND ds.is_current = 1
             LEFT JOIN dw.dim_mode dm ON dm.mode_code = s.mode_code
             -- Excluir filas de dedup y donde no se puede resolver stop_sk o mode_sk
             -- (ambos forman parte del grain y no pueden ser NULL en la fact)
@@ -1572,6 +1687,27 @@ class GoldLoader:
         except Exception as exc:
             log.warning("etl_run_log UPDATE falló (no crítico): %s", exc)
 
+    def _is_already_ok(self, dataset: str, cut: str) -> bool:
+        """
+        Devuelve True si ya existe un run con status='OK' para (dataset, cut).
+        Usa el run más reciente para ese par.
+        """
+        try:
+            result = exec_scalar(
+                self.conn,
+                """
+                SELECT TOP 1 status
+                FROM dw.etl_run_log
+                WHERE dataset = ? AND cut = ?
+                ORDER BY started_at DESC
+                """,
+                (dataset, cut),
+            )
+            return result == "OK"
+        except Exception as exc:
+            log.warning("_is_already_ok: no se pudo consultar etl_run_log — %s", exc)
+            return False
+
     # ── 10. Validaciones pre-run ──────────────────────────────
 
     def _validate_staging_non_empty(self, dataset: str) -> bool:
@@ -1634,6 +1770,19 @@ class GoldLoader:
             rows_staged       = 0
             rows_inserted     = 0
             ignored_cash_rows = 0
+
+            # ── Skip si ya fue cargado exitosamente ────────────
+            if not self.dry_run and not self.force and self._is_already_ok(part.dataset, part.cut):
+                log.info(
+                    "  ⏭ SKIP  dataset=%s  cut=%s — ya existe status=OK en etl_run_log",
+                    part.dataset, part.cut,
+                )
+                continue
+            if self.force and self._is_already_ok(part.dataset, part.cut):
+                log.info(
+                    "  ⚠ FORCE  dataset=%s  cut=%s — ignorando status=OK en etl_run_log",
+                    part.dataset, part.cut,
+                )
 
             try:
                 # 0. Determinar event_date para SCD2
@@ -1749,6 +1898,11 @@ def _build_parser() -> argparse.ArgumentParser:
         ),
     )
     p.add_argument(
+        "--force",
+        action="store_true",
+        help="Fuerza re-proceso de particiones aunque ya existan con status=OK en etl_run_log.",
+    )
+    p.add_argument(
         "--dry-run",
         action="store_true",
         help="Imprime el plan (particiones, queries) sin escribir nada en SQL Server.",
@@ -1800,6 +1954,7 @@ def main(argv: list[str] | None = None) -> int:
             conn=conn,
             dry_run=args.dry_run,
             overwrite_staging=args.overwrite_staging,
+            force=args.force,
         )
         failed = loader.run(partitions)
     finally:
