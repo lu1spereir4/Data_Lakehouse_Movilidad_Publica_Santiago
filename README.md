@@ -134,11 +134,8 @@ El DW se organiza en 4 data marts con dimensiones conformadas.
 
 ![Debug Dimensiones Power BI](docs/powerbi/Debug_dimensionesPowerBI_total.png)
 
-![Medidas DAX](docs/powerbi/medidasDAX.png)
-
 ![Portal de Consultas BI (version anterior)](docs/powerbi/portal_de_consultasBI.png)
 
-![Captura adicional](docs/powerbi/Captura%20de%20pantalla%202026-03-16%20173357.png)
 
 ### KPI validados con SQL (corte 2025-04-21 a 2025-04-27)
 
