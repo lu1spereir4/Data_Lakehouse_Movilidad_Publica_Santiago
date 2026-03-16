@@ -12,7 +12,7 @@ Proyecto de Data Engineering aplicado a movilidad urbana de Santiago (DTPM): arq
 
 ## Resumen profesional (Data Engineer)
 
-### Que disene
+### Que diseñe
 - Arquitectura de datos completa Bronze -> Silver -> Gold para movilidad urbana a gran escala.
 - Capa Silver orientada a calidad con quarantine, contratos y validaciones automatizadas.
 - Modelo dimensional Kimball con SCD2 para preservar historia y trazabilidad.
@@ -134,7 +134,7 @@ El DW se organiza en 4 data marts con dimensiones conformadas.
 
 ![Debug Dimensiones Power BI](docs/powerbi/Debug_dimensionesPowerBI_total.png)
 
-![Portal de Consultas BI (version anterior)](docs/powerbi/docs/powerbi/demo_consultas.png)
+![Portal de Consultas BI (version anterior)](docs/powerbi/demo_consultas.png)
 
 
 ### KPI validados con SQL (corte 2025-04-21 a 2025-04-27)
