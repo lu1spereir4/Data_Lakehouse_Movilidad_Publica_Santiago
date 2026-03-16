@@ -1,0 +1,12 @@
+services:
+  movilidad-query-web:
+    build:
+      context: .
+      dockerfile: Dockerfile.web
+    image: movilidad-query-web:latest
+    working_dir: /app
+    ports:
+      - "8000:8000"
+    environment:
+      SKIP_PIPELINE: "0"
+    command: ["bash", "scripts/run_web_app.sh"]
