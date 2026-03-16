@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Movilidad Santiago | Portal de Consultas</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;700&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+    crossorigin=""
+  />
+  <link rel="stylesheet" href="/static/styles.css" />
+</head>
+<body>
+  <div class="bg-orb orb-1"></div>
+  <div class="bg-orb orb-2"></div>
+
+  <main class="app-shell">
+    <aside class="panel controls">
+      <div class="controls-head">
+        <p class="eyebrow">Santiago Public Mobility</p>
+        <h1>Portal de Consultas</h1>
+        <p class="subtitle">Consulta indicadores clave con filtros por fecha, tipo de dia y modo.</p>
+        <div id="healthBadge" class="health pending">Validando datos...</div>
+      </div>
+
+      <h2>Filtros de Consulta</h2>
+      <div class="grid">
+        <label>
+          Tipo de consulta
+          <select id="queryType">
+            <option value="overview">Resumen Ejecutivo</option>
+            <option value="demand_by_day_type">Demanda por Tipo de Dia</option>
+            <option value="demand_by_mode">Demanda por Modo</option>
+            <option value="top_boardings">Top Paraderos con Mas Subidas</option>
+          </select>
+        </label>
+
+        <label>
+          Fecha desde (cut)
+          <input id="cutFrom" type="date" value="2025-04-21" />
+        </label>
+
+        <label>
+          Fecha hasta (cut)
+          <input id="cutTo" type="date" value="2025-04-27" />
+        </label>
+
+        <label>
+          Limite (solo Top Paraderos)
+          <input id="limit" type="number" min="1" max="200" value="20" />
+        </label>
+
+        <label>
+          Hora desde
+          <input id="hourFrom" type="number" min="0" max="23" value="0" />
+        </label>
+
+        <label>
+          Hora hasta
+          <input id="hourTo" type="number" min="0" max="23" value="23" />
+        </label>
+      </div>
+
+      <div class="chips-block">
+        <p>Tipo de dia</p>
+        <div class="chips" id="tipoDiaChips">
+          <button data-value="LABORAL" class="chip active">LABORAL</button>
+          <button data-value="SABADO" class="chip">SABADO</button>
+          <button data-value="DOMINGO" class="chip">DOMINGO</button>
+        </div>
+      </div>
+
+      <div class="chips-block">
+        <p>Modo</p>
+        <div class="chips" id="modeChips">
+          <button data-value="BUS" class="chip active">BUS</button>
+          <button data-value="METRO" class="chip active">METRO</button>
+          <button data-value="METROTREN" class="chip">METROTREN</button>
+          <button data-value="ZP" class="chip">ZP</button>
+        </div>
+      </div>
+
+      <div class="actions">
+        <button id="runQuery" class="btn primary">Ejecutar Consulta</button>
+        <button id="downloadCsv" class="btn ghost">Descargar CSV</button>
+      </div>
+    </aside>
+
+    <section class="panel workspace">
+      <div class="workspace-head">
+        <div>
+          <h2>Resultados</h2>
+          <div id="queryMeta" class="query-meta">Ultima consulta: pendiente</div>
+        </div>
+        <span id="rowCount" class="rowcount">0 filas</span>
+      </div>
+
+      <div class="query-meta">Nota: valores estimados usan factores de expansion estadisticos; por eso pueden incluir decimales.</div>
+      <div id="kpiStrip" class="kpi-strip"></div>
+
+      <div class="results-body">
+        <div class="geo-split">
+          <div class="map-panel">
+            <div class="map-head">
+              <h3>Mapa Interactivo de Demanda</h3>
+              <span id="mapPointCount" class="map-point-count">0 puntos</span>
+            </div>
+            <div class="map-legend">
+              <span class="legend-item"><span class="legend-dot low"></span>Baja</span>
+              <span class="legend-item"><span class="legend-dot medium"></span>Media</span>
+              <span class="legend-item"><span class="legend-dot high"></span>Alta</span>
+              <span class="legend-item"><span class="legend-dot critical"></span>Critica</span>
+            </div>
+            <div id="mapCanvas" class="map-canvas"></div>
+          </div>
+
+          <div class="street-panel">
+            <div class="streetview-head">
+              <h4 id="streetViewTitle">Street View del Paradero</h4>
+              <a id="streetViewLink" target="_blank" rel="noopener noreferrer">Abrir en Google Maps</a>
+            </div>
+            <iframe
+              id="streetViewFrame"
+              title="Street View"
+              loading="lazy"
+              referrerpolicy="no-referrer-when-downgrade"
+            ></iframe>
+          </div>
+        </div>
+
+        <div class="table-panel">
+          <div id="geoCoverage" class="geo-coverage">Cobertura geográfica: --</div>
+          <table id="resultTable">
+            <thead></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div id="insightsPanel" class="insights-panel">
+        <h3>Insights Rapidos</h3>
+        <ul id="insightsList">
+          <li>Ejecuta una consulta para ver hallazgos clave.</li>
+        </ul>
+      </div>
+    </section>
+  </main>
+
+  <script
+    src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+    integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+    crossorigin=""
+  ></script>
+  <script src="/static/app.js"></script>
+</body>
+</html>
