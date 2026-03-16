@@ -32,7 +32,7 @@ Proyecto de Data Engineering aplicado a movilidad urbana de Santiago (DTPM): arq
 
 ## Demo (vista real del producto)
 
-![Demo Portal de Consultas](docs/powerbi/demo_consultas.png)
+![Demo Portal de Consultas](docs/powerbi/portal_de_consultasBI.png)
 
 ## Perfil tecnico del proyecto (Data Engineer)
 - Diseno e implementacion de arquitectura Medallion para volumen real (50.5M+ registros).
@@ -134,7 +134,7 @@ El DW se organiza en 4 data marts con dimensiones conformadas.
 
 ![Debug Dimensiones Power BI](docs/powerbi/Debug_dimensionesPowerBI_total.png)
 
-![Portal de Consultas BI (version anterior)](docs/powerbi/portal_de_consultasBI.png)
+![Portal de Consultas BI (version anterior)](docs/powerbi/docs/powerbi/demo_consultas.png)
 
 
 ### KPI validados con SQL (corte 2025-04-21 a 2025-04-27)
