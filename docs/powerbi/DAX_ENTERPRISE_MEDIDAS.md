@@ -1,19 +1,16 @@
-﻿# DAX Enterprise Pack - Transporte Publico (Power BI)
+# DAX Enterprise Medidas - Reporte Ejecutivo y Estrategico
 
-Este pack esta pensado para tu modelo constelacion con estas tablas:
-- Facts: `fct_trip`, `fct_trip_leg`, `fct_validation`, `fct_boardings_30m`
-- Dims: `dim_date`, `dim_time_30m`, `dim_stop`, `dim_mode`, `dim_service`, `dim_operator`, `dim_fare_period`, `dim_purpose`
+Catalogo unico de formulas DAX en uso para:
 
-Recomendacion de implementacion:
-1. Crear tabla de medidas `_Medidas`.
-2. Pegar en el orden indicado (base -> revenue -> operacion -> intermodal -> tiempo -> debug).
-3. Formatear porcentajes y enteros al final.
+1. Pagina 1 - Resumen Ejecutivo.
+2. Pagina 2 - Oportunidades Estrategicas.
+3. KPI de Cobertura Recaudacion Comparable.
 
----
+## Alcance funcional
 
-## 0) Slicer global de tipo de dia (tabla desconectada)
+Este documento reemplaza versiones duplicadas y consolida solo formulas vigentes para produccion.
 
-> Usa esta tabla para evitar conflictos entre facts con grano distinto.
+## 1) Tabla desconectada de tipo de dia
 
 ```DAX
 DimTipoDia =
@@ -27,9 +24,7 @@ DATATABLE(
 )
 ```
 
----
-
-## 1) Medidas base (volumen)
+## 2) Medidas base de volumen
 
 ```DAX
 Viajes Total = COUNTROWS(fct_trip)
@@ -47,49 +42,7 @@ Validaciones Total = COUNTROWS(fct_validation)
 Subidas Total = SUM(fct_boardings_30m[subidas_promedio])
 ```
 
-```DAX
-Tarjetas Unicas = DISTINCTCOUNT(fct_trip[id_tarjeta])
-```
-
-```DAX
-Pasajeros Expandidos = SUM(fct_trip[factor_expansion])
-```
-
-```DAX
-Tiempo Viaje Promedio Min = AVERAGE(fct_trip[tviaje_min])
-```
-
-```DAX
-Etapas Promedio = AVERAGE(fct_trip[n_etapas])
-```
-
-```DAX
-% Con Transbordo =
-DIVIDE(
-    COUNTROWS(FILTER(fct_trip, fct_trip[n_etapas] > 1)),
-    [Viajes Total]
-)
-```
-
----
-
-## 2) Filtros por tipo de dia (aplicables por fact)
-
-```DAX
-Viajes (TipoDia) =
-CALCULATE(
-    [Viajes Total],
-    TREATAS(VALUES(DimTipoDia[tipo_dia]), fct_trip[tipo_dia])
-)
-```
-
-```DAX
-Legs (TipoDia) =
-CALCULATE(
-    [Legs Total],
-    TREATAS(VALUES(DimTipoDia[tipo_dia]), fct_trip_leg[tipo_dia])
-)
-```
+## 3) Filtros por tipo de dia
 
 ```DAX
 Validaciones (TipoDia) =
@@ -100,347 +53,286 @@ CALCULATE(
 ```
 
 ```DAX
-Subidas (TipoDia) =
+Legs (TipoDia) =
 CALCULATE(
-    [Subidas Total],
-    TREATAS(VALUES(DimTipoDia[tipo_dia]), fct_boardings_30m[tipo_dia])
+    [Legs Total],
+    TREATAS(VALUES(DimTipoDia[tipo_dia]), dim_date[tipo_dia])
 )
 ```
 
----
-
-## 3) Revenue Assurance
+## 4) Base compatible mensual para boardings
 
 ```DAX
-Pasajeros Estimados Transportados =
-VAR _boardings = [Subidas (TipoDia)]
-VAR _legs = [Legs (TipoDia)]
-RETURN
-IF(NOT ISBLANK(_boardings) && _boardings > 0, _boardings, _legs)
-```
-
-```DAX
-Brecha No Validada =
-VAR _transportados = [Pasajeros Estimados Transportados]
-VAR _validados = [Validaciones (TipoDia)]
-RETURN
-MAX(_transportados - _validados, 0)
-```
-
-```DAX
-Tasa Evasion Estimada % =
-DIVIDE([Brecha No Validada], [Pasajeros Estimados Transportados])
-```
-
-```DAX
-Ratio Validacion vs Demanda % =
-DIVIDE([Validaciones (TipoDia)], [Pasajeros Estimados Transportados])
-```
-
-```DAX
-Brecha No Validada YTD =
-TOTALYTD([Brecha No Validada], dim_date[full_date])
-```
-
-```DAX
-Validaciones YTD =
-TOTALYTD([Validaciones Total], dim_date[full_date])
-```
-
-```DAX
-Variacion YTD Validaciones % =
-VAR _ytd = [Validaciones YTD]
-VAR _ytd_ly =
-    CALCULATE(
-        [Validaciones YTD],
-        DATEADD(dim_date[full_date], -1, YEAR)
-    )
-RETURN
-DIVIDE(_ytd - _ytd_ly, _ytd_ly)
-```
-
----
-
-## 4) Eficiencia Operacional
-
-```DAX
-Espera Promedio Min = AVERAGE(fct_validation[t_espera_media_min])
-```
-
-```DAX
-Espera P50 Min =
-PERCENTILEX.INC(
-    FILTER(fct_validation, NOT ISBLANK(fct_validation[t_espera_media_min])),
-    fct_validation[t_espera_media_min],
-    0.5
-)
-```
-
-```DAX
-Espera P90 Min =
-PERCENTILEX.INC(
-    FILTER(fct_validation, NOT ISBLANK(fct_validation[t_espera_media_min])),
-    fct_validation[t_espera_media_min],
-    0.9
-)
-```
-
-```DAX
-% Bajada Registrada =
-DIVIDE(
-    CALCULATE(COUNTROWS(fct_validation), fct_validation[tiene_bajada] = 1),
-    [Validaciones Total]
-)
-```
-
-```DAX
-Indice Saturacion Horaria =
-VAR _actual = [Pasajeros Estimados Transportados]
-VAR _base_horas =
-    ADDCOLUMNS(
-        ALL(dim_time_30m[time_30m_sk]),
-        "__demanda", CALCULATE([Pasajeros Estimados Transportados])
-    )
-VAR _p95 = PERCENTILEX.INC(_base_horas, [__demanda], 0.95)
-RETURN
-DIVIDE(_actual, _p95)
-```
-
-```DAX
-Brecha Espera Laboral vs Domingo =
-VAR _lab =
-    CALCULATE(
-        [Espera Promedio Min],
-        TREATAS({"LABORAL"}, fct_validation[tipo_dia])
-    )
-VAR _dom =
-    CALCULATE(
-        [Espera Promedio Min],
-        TREATAS({"DOMINGO"}, fct_validation[tipo_dia])
-    )
-RETURN
-_lab - _dom
-```
-
----
-
-## 5) Mapa de Presion Operativa
-
-```DAX
-Subidas Mapa (Hora Unica) =
-IF(
-    HASONEVALUE(dim_time_30m[hour]),
-    [Subidas (TipoDia)],
-    BLANK()
-)
-```
-
-```DAX
-Subidas Promedio por Hora (Rango) =
-DIVIDE(
-    [Subidas (TipoDia)],
-    DISTINCTCOUNT(dim_time_30m[hour])
-)
-```
-
-```DAX
-Subidas Max Mapa =
-VAR TStops =
-    ADDCOLUMNS(
-        ALLSELECTED(dim_stop[stop_sk]),
-        "@SubidasStop", CALCULATE([Subidas (TipoDia)], REMOVEFILTERS(dim_stop[stop_sk]))
-    )
-RETURN
-MAXX(TStops, [@SubidasStop])
-```
-
-```DAX
-Subidas Normalizado = DIVIDE([Subidas (TipoDia)], [Subidas Max Mapa])
-```
-
-```DAX
-Espera Max Mapa =
-VAR TStops =
-    ADDCOLUMNS(
-        ALLSELECTED(dim_stop[stop_sk]),
-        "@EsperaStop", CALCULATE([Espera Promedio Min], REMOVEFILTERS(dim_stop[stop_sk]))
-    )
-RETURN
-MAXX(TStops, [@EsperaStop])
-```
-
-```DAX
-Espera Normalizado = DIVIDE([Espera Promedio Min], [Espera Max Mapa])
-```
-
-```DAX
-Indice Presion Operativa =
-ROUND(100 * (0.70 * [Subidas Normalizado] + 0.30 * [Espera Normalizado]), 1)
-```
-
-```DAX
-Indice Presion Categoria =
-SWITCH(
-    TRUE(),
-    [Indice Presion Operativa] >= 80, "Alta",
-    [Indice Presion Operativa] >= 50, "Media",
-    "Baja"
-)
-```
-
-```DAX
-Banda Espera =
-SWITCH(
-    TRUE(),
-    [Espera Promedio Min] >= 20, "Alta",
-    [Espera Promedio Min] >= 12, "Media",
-    "Baja"
-)
-```
-
----
-
-## 6) Intermodalidad
-
-```DAX
-Trips Unicos (Leg) = DISTINCTCOUNT(fct_trip_leg[trip_sk])
-```
-
-```DAX
-Trips Intermodales =
-SUMX(
-    VALUES(fct_trip_leg[trip_sk]),
-    VAR _modos = CALCULATE(DISTINCTCOUNT(fct_trip_leg[mode_sk]))
-    RETURN IF(_modos >= 2, 1, 0)
-)
-```
-
-```DAX
-Tasa Intermodalidad % = DIVIDE([Trips Intermodales], [Trips Unicos (Leg)])
-```
-
-```DAX
-Transfer Promedio Min = AVERAGE(fct_trip_leg[tc_transfer_min])
-```
-
-```DAX
-Legs Promedio por Viaje = DIVIDE([Legs Total], [Trips Unicos (Leg)])
-```
-
----
-
-## 7) Medidas Top N (cuellos de botella)
-
-```DAX
-Rank Paradero Presion =
-RANKX(
-    ALLSELECTED(dim_stop[stop_code]),
-    [Indice Presion Operativa],
-    ,
-    DESC,
-    Dense
-)
-```
-
-```DAX
-Mostrar Top 20 Paraderos = IF([Rank Paradero Presion] <= 20, 1, 0)
-```
-
-```DAX
-Paradero Critico #1 =
-VAR _top1 =
-    TOPN(
-        1,
-        ADDCOLUMNS(VALUES(dim_stop[stop_code]), "@idx", [Indice Presion Operativa]),
-        [@idx], DESC
-    )
-RETURN
-CONCATENATEX(_top1, dim_stop[stop_code], ", ")
-```
-
----
-
-## 8) Titulo dinamico y storytelling
-
-```DAX
-Titulo Mapa Operativo =
-VAR hMin = MIN(dim_time_30m[hour])
-VAR hMax = MAX(dim_time_30m[hour])
-VAR modo = SELECTEDVALUE(dim_mode[mode_code], "Todos los modos")
-VAR td = SELECTEDVALUE(DimTipoDia[tipo_dia], "Todos los tipos de dia")
-RETURN
-"Presion operativa por paradero | Hora: "
-& FORMAT(hMin, "00") & ":00"
-& IF(hMin <> hMax, " - " & FORMAT(hMax, "00") & ":59", "")
-& " | Modo: " & modo
-& " | Tipo dia: " & td
-```
-
-```DAX
-Mensaje Ejecutivo =
-VAR _ev = [Tasa Evasion Estimada %]
-VAR _sat = [Indice Saturacion Horaria]
-RETURN
-IF(
-    _ev >= 0.20 && _sat >= 1,
-    "Riesgo alto: alta evasion y saturacion en el contexto filtrado.",
-    IF(
-        _ev >= 0.20,
-        "Riesgo de recaudacion: evasion elevada.",
-        IF(
-            _sat >= 1,
-            "Riesgo operacional: saturacion sobre P95.",
-            "Operacion en rango controlado."
+Subidas (TipoDia) (Fecha Compatible) =
+VAR MesesSeleccionadosSK =
+    DISTINCT(
+        SELECTCOLUMNS(
+            ALLSELECTED(dim_date[year], dim_date[month]),
+            "month_date_sk", dim_date[year] * 10000 + dim_date[month] * 100 + 1
         )
     )
+RETURN
+CALCULATE(
+    SUM(fct_boardings_30m[subidas_promedio]),
+    REMOVEFILTERS(dim_date),
+    TREATAS(MesesSeleccionadosSK, fct_boardings_30m[month_date_sk]),
+    FILTER(
+        ALL(fct_boardings_30m[tipo_dia]),
+        NOT ISFILTERED(DimTipoDia[tipo_dia])
+            || fct_boardings_30m[tipo_dia] IN VALUES(DimTipoDia[tipo_dia])
+    )
 )
 ```
 
----
+```DAX
+Dias TipoDia Seleccionados =
+CALCULATE(
+    DISTINCTCOUNT(dim_date[full_date]),
+    FILTER(
+        ALL(dim_date[tipo_dia]),
+        NOT ISFILTERED(DimTipoDia[tipo_dia])
+            || dim_date[tipo_dia] IN VALUES(DimTipoDia[tipo_dia])
+    )
+)
+```
 
-## 9) Debug / QA del modelo
+## 5) Universo comparable de recaudacion
 
 ```DAX
-Debug Stops en Contexto = COUNTROWS(ALLSELECTED(dim_stop[stop_sk]))
+Validaciones (TipoDia) Comparable =
+CALCULATE(
+    [Validaciones (TipoDia)],
+    KEEPFILTERS(dim_mode[mode_code] IN {"BUS", "METRO"})
+)
 ```
 
 ```DAX
-Debug Horas en Contexto = DISTINCTCOUNT(dim_time_30m[hour])
+Subidas (TipoDia) (Fecha Compatible) Comparable =
+CALCULATE(
+    [Subidas (TipoDia) (Fecha Compatible)],
+    KEEPFILTERS(dim_mode[mode_code] IN {"BUS", "METRO"})
+)
 ```
 
 ```DAX
-Debug Modo en Contexto = DISTINCTCOUNT(dim_mode[mode_code])
+Subidas Escaladas TipoDia Comparable (Ponderada TD) =
+VAR MesesSeleccionadosSK =
+    DISTINCT(
+        SELECTCOLUMNS(
+            ALLSELECTED(dim_date[year], dim_date[month]),
+            "month_date_sk", dim_date[year] * 10000 + dim_date[month] * 100 + 1
+        )
+    )
+VAR TiposDiaEnUso =
+    SELECTCOLUMNS(
+        FILTER(
+            VALUES(dim_date[tipo_dia]),
+            NOT ISFILTERED(DimTipoDia[tipo_dia])
+                || dim_date[tipo_dia] IN VALUES(DimTipoDia[tipo_dia])
+        ),
+        "tipo_dia", dim_date[tipo_dia]
+    )
+RETURN
+SUMX(
+    TiposDiaEnUso,
+    VAR _td = [tipo_dia]
+    VAR _subidas_td =
+        CALCULATE(
+            SUM(fct_boardings_30m[subidas_promedio]),
+            REMOVEFILTERS(dim_date),
+            KEEPFILTERS(dim_mode[mode_code] IN {"BUS", "METRO"}),
+            TREATAS(MesesSeleccionadosSK, fct_boardings_30m[month_date_sk]),
+            FILTER(
+                ALL(fct_boardings_30m[tipo_dia]),
+                fct_boardings_30m[tipo_dia] = _td
+            )
+        )
+    VAR _dias_td =
+        CALCULATE(
+            DISTINCTCOUNT(dim_date[full_date]),
+            FILTER(
+                ALL(dim_date[tipo_dia]),
+                dim_date[tipo_dia] = _td
+            )
+        )
+    RETURN COALESCE(_subidas_td, 0) * COALESCE(_dias_td, 0)
+)
+```
+
+## 6) KPI principal de recaudacion comparable
+
+```DAX
+Pasajeros Estimados Recaudacion Comparable =
+VAR s = [Subidas Escaladas TipoDia Comparable (Ponderada TD)]
+RETURN IF(NOT ISBLANK(s) && s > 0, s, BLANK())
 ```
 
 ```DAX
-Debug Tiene Datos =
-VAR v = [Viajes Total] + [Validaciones Total] + [Subidas Total] + [Legs Total]
-RETURN IF(v > 0, 1, 0)
+Cobertura Recaudacion Comparable % =
+DIVIDE([Validaciones (TipoDia) Comparable], [Pasajeros Estimados Recaudacion Comparable])
 ```
 
----
+```DAX
+Brecha Signed Recaudacion Comparable =
+[Pasajeros Estimados Recaudacion Comparable] - [Validaciones (TipoDia) Comparable]
+```
 
-## 10) Formato recomendado
+```DAX
+Brecha No Validada Recaudacion Comparable =
+MAX([Brecha Signed Recaudacion Comparable], 0)
+```
 
-- Porcentajes:
-  - `Tasa Evasion Estimada %`
-  - `Ratio Validacion vs Demanda %`
-  - `Variacion YTD Validaciones %`
-  - `Tasa Intermodalidad %`
-- 1 decimal:
-  - `Indice Presion Operativa`
-  - `Indice Saturacion Horaria`
-- Entero con separador de miles:
-  - `Viajes Total`, `Validaciones Total`, `Subidas Total`, `Legs Total`
+```DAX
+Sobrevalidacion Recaudacion Comparable =
+MAX(-[Brecha Signed Recaudacion Comparable], 0)
+```
 
----
+## 7) Comparabilidad y calidad
 
-## 11) Orden de implementacion (rapido)
+```DAX
+Modos Comparables Seleccionados =
+VAR _comp = DATATABLE("mode_code", STRING, {{"BUS"}, {"METRO"}})
+VAR _sel = VALUES(dim_mode[mode_code])
+RETURN
+IF(
+    ISFILTERED(dim_mode[mode_code]),
+    COUNTROWS(INTERSECT(_comp, _sel)),
+    COUNTROWS(_comp)
+)
+```
 
-1. Bloque 1 (base)
-2. Bloque 2 (tipo de dia)
-3. Bloque 3 (revenue)
-4. Bloque 4 y 5 (operacion + mapa)
-5. Bloque 6 (intermodal)
-6. Bloques 7-9 (topN, narrativa y debug)
+```DAX
+Modos No Comparables en Filtro =
+COUNTROWS(
+    FILTER(
+        VALUES(dim_mode[mode_code]),
+        NOT (dim_mode[mode_code] IN {"BUS", "METRO"})
+    )
+)
+```
 
+```DAX
+Estado Comparabilidad Recaudacion =
+VAR p = [Pasajeros Estimados Recaudacion Comparable]
+VAR c = [Cobertura Recaudacion Comparable %]
+VAR nc = [Modos No Comparables en Filtro]
+VAR mc = [Modos Comparables Seleccionados]
+RETURN
+SWITCH(
+    TRUE(),
+    mc = 0, "No comparable (sin modos comparables)",
+    ISBLANK(p) || p <= 0, "No comparable (sin base)",
+    ISBLANK(c), "No comparable",
+    nc > 0, "Comparable (solo BUS/METRO; hay modos no comparables en filtro)",
+    c < 0.30, "No comparable (base sobredimensionada)",
+    c > 1.50, "No comparable (base subdimensionada)",
+    "Comparable"
+)
+```
+
+```DAX
+Bandera Calidad Horaria =
+IF([Pasajeros Estimados Recaudacion Comparable] < 500, 0, 1)
+```
+
+```DAX
+Cobertura Recaudacion Comparable % (Calidad Horaria) =
+IF([Bandera Calidad Horaria] = 1, [Cobertura Recaudacion Comparable %], BLANK())
+```
+
+## 8) Medidas de oportunidad estrategica
+
+```DAX
+Recuperacion Potencial 10 % =
+0.10 * [Brecha No Validada Recaudacion Comparable]
+```
+
+```DAX
+Recuperacion Potencial 20 % =
+0.20 * [Brecha No Validada Recaudacion Comparable]
+```
+
+```DAX
+Brecha Relativa % =
+DIVIDE(
+    [Brecha No Validada Recaudacion Comparable],
+    [Pasajeros Estimados Recaudacion Comparable]
+)
+```
+
+```DAX
+Impacto Prioridad Score =
+VAR wBrecha = 0.50
+VAR wVolumen = 0.30
+VAR wCobertura = 0.20
+VAR brechaNorm =
+    DIVIDE(
+        [Brecha No Validada Recaudacion Comparable],
+        CALCULATE(
+            MAXX(
+                ALLSELECTED(dim_stop[stop_code]),
+                [Brecha No Validada Recaudacion Comparable]
+            )
+        )
+    )
+VAR volumenNorm =
+    DIVIDE(
+        [Pasajeros Estimados Recaudacion Comparable],
+        CALCULATE(
+            MAXX(
+                ALLSELECTED(dim_stop[stop_code]),
+                [Pasajeros Estimados Recaudacion Comparable]
+            )
+        )
+    )
+VAR coberturaGap = 1 - [Cobertura Recaudacion Comparable %]
+RETURN
+100 * (
+    wBrecha * COALESCE(brechaNorm, 0)
+    + wVolumen * COALESCE(volumenNorm, 0)
+    + wCobertura * COALESCE(coberturaGap, 0)
+)
+```
+
+```DAX
+Accion Recomendada =
+VAR c = [Cobertura Recaudacion Comparable %]
+VAR b = [Brecha No Validada Recaudacion Comparable]
+RETURN
+SWITCH(
+    TRUE(),
+    ISBLANK(c) || ISBLANK(b), "Revisar calidad de base",
+    c < 0.75 && b > 0, "Fiscalizacion focalizada",
+    c >= 0.75 && c < 0.90 && b > 0, "Ajuste operativo y control",
+    c >= 0.90 && b > 0, "Micro-optimizacion",
+    "Monitoreo"
+)
+```
+
+```DAX
+Top 10 Foco =
+VAR r =
+    RANKX(
+        ALLSELECTED(dim_stop[stop_code]),
+        [Impacto Prioridad Score],
+        ,
+        DESC,
+        DENSE
+    )
+RETURN IF(r <= 10, 1, 0)
+```
+
+```DAX
+Meta Cobertura % = 0.95
+```
+
+```DAX
+Gap vs Meta Cobertura % =
+[Meta Cobertura %] - [Cobertura Recaudacion Comparable %]
+```
+
+## 9) Nota de operacion
+
+1. No usar medidas legacy de cobertura y brecha en paginas ejecutivas.
+2. Mantener visible Estado Comparabilidad Recaudacion en vistas gerenciales.
+3. Validar periodicamente con SQL en mismo contexto de filtros.

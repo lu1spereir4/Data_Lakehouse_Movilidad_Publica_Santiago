@@ -4,20 +4,17 @@ Este directorio concentra la documentacion del trabajo analitico realizado en Po
 
 ## Archivos
 
-- [DAX_MEDIDAS_POWERBI.md](DAX_MEDIDAS_POWERBI.md)
+- [DAX_ENTERPRISE_MEDIDAS.md](DAX_ENTERPRISE_MEDIDAS.md)
 
-## Que contiene `DAX_MEDIDAS_POWERBI.md`
+## Que contiene DAX_ENTERPRISE_MEDIDAS.md
 
-El archivo incluye las medidas DAX usadas para construir la pagina de **Mapa Presion Operativa** y sus variantes:
+El archivo incluye el catalogo consolidado de medidas DAX usadas en las paginas ejecutivas y estrategicas:
 
-1. Medidas base de volumen (`Viajes`, `Validaciones`, `Legs`, `Subidas`).
-2. Medidas de calidad de servicio (`Espera Promedio`, `P50`, `P90`, `% Bajada Registrada`).
-3. Medidas de normalizacion para mapa.
-4. Versiones del `Indice Presion Operativa` (simple, ponderada y robusta).
-5. Medidas para analisis por hora exacta y por rango horario.
-6. Titulos dinamicos para mejorar narrativa ejecutiva.
-7. Filtro por tipo de dia con tabla desconectada (`TREATAS`).
-8. Medidas de depuracion para validar contexto de filtros.
+1. Base de volumen y filtros por tipo de dia.
+2. Universo comparable de recaudacion (BUS y METRO).
+3. KPI oficial de cobertura, brecha y sobrevalidacion.
+4. Estado de comparabilidad y calidad horaria.
+5. Medidas de priorizacion estrategica y recuperacion potencial.
 
 ## Objetivo del documento
 
@@ -30,9 +27,9 @@ Facilitar:
 ## Recomendaciones de uso
 
 1. Crear una tabla de medidas `_Medidas` y pegar ahi las formulas.
-2. Empezar por medidas base, luego agregar indice y medidas dinamicas.
-3. Validar contexto con las medidas de debug antes de publicar.
-4. En mapas por hora, usar seleccion unica de `hour` para evitar sobreacumulacion.
+2. Implementar primero base compatible y luego KPI comparable.
+3. Mantener visibles las medidas de estado de comparabilidad.
+4. Evitar mezclar medidas legacy en paginas ejecutivas.
 
 ## Alcance
 

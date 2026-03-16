@@ -66,6 +66,77 @@ Perfiles horarios de subidas promedio por paradero, modo y tipo de día.
 
 ---
 
+## Analitica Ejecutiva (Power BI)
+
+El proyecto incluye un modulo de analitica ejecutiva sobre la capa Gold del Data Warehouse, enfocado en cobertura de recaudacion, priorizacion territorial y seguimiento de oportunidades.
+
+### Pagina 1 - Resumen Ejecutivo
+
+![Resumen Ejecutivo Cobertura Comparable](docs/powerbi/cobertura-recaudacion-comparable-bus-metro-v1.png)
+
+Uso principal:
+
+- Lectura rapida de pasajeros estimados, validaciones, cobertura y brecha.
+- Monitoreo del estado de comparabilidad en el contexto filtrado.
+- Identificacion de riesgo operativo por franja horaria y territorio.
+
+### Pagina 2 - Oportunidades Estrategicas
+
+![Oportunidades Estrategicas Recaudacion](docs/powerbi/pagina-02-oportunidades-estrategicas-recaudacion-v1.png.png)
+
+Uso principal:
+
+- Priorizacion de focos por impacto esperado.
+- Escenarios de recuperacion potencial.
+- Ranking accionable con recomendacion operativa.
+- Seguimiento de cobertura contra meta.
+
+### KPI validados con SQL (corte 2025-04-21 a 2025-04-27)
+
+Universo comparable: BUS y METRO.
+
+| Indicador | Valor |
+|---------|-------|
+| Pasajeros estimados comparables | **27,303,047** |
+| Validaciones comparables | **25,302,587** |
+| Cobertura recaudacion comparable | **92.67%** |
+| Brecha no validada comparable | **2,000,460** |
+| Sobrevalidacion comparable | **0** |
+
+Desglose por tipo de dia:
+
+| Tipo de dia | Pasajeros estimados | Validaciones | Cobertura |
+|---------|-------:|-------:|-------:|
+| LABORAL | 23,306,115 | 21,396,331 | 91.81% |
+| SABADO | 2,559,378 | 2,479,627 | 96.88% |
+| DOMINGO | 1,437,554 | 1,426,629 | 99.24% |
+
+Desglose por modo comparable:
+
+| Modo | Pasajeros estimados | Validaciones | Cobertura |
+|---------|-------:|-------:|-------:|
+| BUS | 13,512,816 | 11,536,365 | 85.37% |
+| METRO | 13,790,231 | 13,766,222 | 99.83% |
+
+Lectura ejecutiva:
+
+- La brecha se concentra principalmente en BUS.
+- METRO se mantiene practicamente calibrado en el corte analizado.
+- El KPI es estable para seguimiento de priorizacion territorial y operativa.
+
+### Interpretacion metodologica del KPI
+
+Cobertura Recaudacion Comparable representa cobertura de validacion estimada sobre universo comparable, no medicion directa de evasion observada a nivel individual. Su uso recomendado es priorizacion y seguimiento de gestion.
+
+### Documentacion funcional y tecnica
+
+- [Pagina 1 - Resumen Ejecutivo](docs/powerbi/PAGINA_01_POWERBI_RESUMEN_EJECUTIVO.md)
+- [Pagina 2 - Oportunidades Estrategicas](docs/powerbi/PAGINA_02_OPORTUNIDADES_ESTRATEGICAS.md)
+- [Solucion Tecnica Cobertura Comparable](docs/powerbi/SOLUCION_PROBLEMA_COBERTURA_RECAUDACION.md)
+- [DAX Enterprise Medidas](docs/powerbi/DAX_ENTERPRISE_MEDIDAS.md)
+
+---
+
 ## Los Datos
 
 Fuente: **DTPM (Directorio de Transporte Público Metropolitano)**, publicados como datos abiertos. Combinan dos fuentes: 
