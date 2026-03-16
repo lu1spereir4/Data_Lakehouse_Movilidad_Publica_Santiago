@@ -1,0 +1,15 @@
+*
+
+!requirements-demo.txt
+!build_catalog.py
+!build_lake_demo.py
+!src/
+!src/**
+!scripts/
+!scripts/**
+!data/
+!data/demo/
+!data/demo/**
+!web/
+!web/static/
+!web/static/**

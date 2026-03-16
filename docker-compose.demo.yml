@@ -1,0 +1,8 @@
+services:
+  pipeline-demo:
+    build:
+      context: .
+      dockerfile: Dockerfile.demo
+    image: dtpm-pipeline-demo:latest
+    working_dir: /app
+    command: ["bash", "scripts/run_demo_pipeline.sh"]

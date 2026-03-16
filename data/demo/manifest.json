@@ -1,0 +1,27 @@
+{
+  "seed": 20260416,
+  "viajes_rows_per_day": 450,
+  "etapas_rows_per_day": 500,
+  "etapas_total_rows": 3500,
+  "subidas_rows_per_daytype": 300,
+  "generated_from": "C:\\Users\\Luis\\Documents\\GitHub\\Data_Lakehouse_Movilidad_P\u00fablica_Santiago\\lake\\raw\\dtpm",
+  "outputs": {
+    "viajes": {
+      "2025-04-21": 450,
+      "2025-04-22": 450,
+      "2025-04-23": 450,
+      "2025-04-24": 450,
+      "2025-04-25": 450,
+      "2025-04-26": 450,
+      "2025-04-27": 450
+    },
+    "etapas": {
+      "2025-04-21_2025-04-27": 3500
+    },
+    "subidas_30m": {
+      "LABORAL": 300,
+      "SABADO": 300,
+      "DOMINGO": 300
+    }
+  }
+}

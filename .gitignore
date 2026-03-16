@@ -1,6 +1,9 @@
 # ── Datos brutos y procesados (no van al repo) ─────────────
 *.csv
 *.parquet
+!data/demo/
+!data/demo/**/*.csv
+!data/demo/manifest.json
 
 # Quarantine: datos derivados de gran tamaño
 lake/processed/_quarantine/
